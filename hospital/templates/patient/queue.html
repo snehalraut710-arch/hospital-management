@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Live queue{% endblock %}
+{% block content %}
+<div class="crumb">
+  <a href="{{ url_for('patient.appointment_detail', appointment_id=appointment.id) }}">Appointment</a> / Live queue
+</div>
+
+<div class="between" style="margin-bottom:1rem">
+  <div>
+    <h1 style="margin-bottom:.15rem">{{ appointment.doctor.display_name }}</h1>
+    <div class="muted small">
+      {{ appointment.doctor.department.name }}
+      {% if appointment.doctor.room_no %} &middot; Room {{ appointment.doctor.room_no }}{% endif %}
+      &middot; {{ appointment.appt_date|prettydate }}
+    </div>
+  </div>
+  <span class="badge teal" id="livedot">Live &middot; updating every 5s</span>
+</div>
+
+<div class="split">
+  <div class="stack">
+    <div class="grid g2">
+      <div class="token-hero">
+        <div class="lbl">Your token</div>
+        <div class="big">{{ position.token }}</div>
+      </div>
+      <div class="card center" style="display:grid;place-content:center">
+        <div class="l muted" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.1em;font-weight:600">Now serving</div>
+        <div class="now-serving" id="serving">{{ snapshot.now_serving or '—' }}</div>
+      </div>
+    </div>
+
+    <div class="grid g3">
+      <div class="stat"><div class="n" id="ahead">{{ position.people_ahead }}</div><div class="l">People ahead</div></div>
+      <div class="stat amber"><div class="n"><span id="wait">{{ position.estimated_wait_minutes }}</span> min</div><div class="l">Estimated wait</div></div>
+      <div class="stat green"><div class="n" id="served">{{ snapshot.served }}</div><div class="l">Seen so far</div></div>
+    </div>
+
+    {% if appointment.status == 'booked' %}
+      <div class="card" style="background:var(--teal-50);border-color:var(--teal-300)">
+        <div class="between">
+          <div>
+            <strong>You have not checked in yet</strong>
+            <div class="small muted">Check in when you arrive so the doctor knows you are here.</div>
+          </div>
+          <form method="post" action="{{ url_for('patient.check_in', appointment_id=appointment.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn" type="submit">Check in</button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="card" id="statusbox">
+      <strong id="statusmsg">
+        {% if position.status == 'in_consult' %}
+          It's your turn - please go to room {{ appointment.doctor.room_no or 'reception' }}.
+        {% elif position.people_ahead == 0 %}
+          You're next. Please wait near the consultation room.
+        {% else %}
+          {{ position.people_ahead }} patient(s) ahead of you.
+        {% endif %}
+      </strong>
+      <div class="small muted" style="margin-top:.3rem">
+        The estimate uses this doctor's actual pace today, so it updates as the clinic runs.
+      </div>
+    </div>
+  </div>
+
+  <div class="card pad0">
+    <div class="card-head"><h3>Today's queue</h3></div>
+    <div id="tokens">
+      {% for token in snapshot.tokens %}
+        <div class="queue-row {{ 'now' if token.status == 'in_consult' }} {{ 'done' if token.status in ['completed','no_show'] }}">
+          <div class="tok">{{ token.token }}</div>
+          <div style="flex:1">
+            <div class="small"><strong>{{ 'You' if token.token == position.token else 'Patient' }}</strong></div>
+            <div class="small muted">{{ token.time }}</div>
+          </div>
+          <span class="badge st-{{ token.status }}">{{ token.status_label }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const myToken = {{ position.token }};
+
+  async function refresh() {
+    try {
+      const [posResponse, queueResponse] = await Promise.all([
+        fetch('{{ url_for("api.my_position", appointment_id=appointment.id) }}'),
+        fetch('{{ url_for("api.queue_snapshot", session_id=appointment.session_id) }}')
+      ]);
+      const position = await posResponse.json();
+      const snapshot = await queueResponse.json();
+
+      document.getElementById('serving').textContent = snapshot.now_serving || '—';
+      document.getElementById('ahead').textContent   = position.people_ahead;
+      document.getElementById('wait').textContent    = position.estimated_wait_minutes;
+      document.getElementById('served').textContent  = snapshot.served;
+
+      const message = document.getElementById('statusmsg');
+      const box = document.getElementById('statusbox');
+      if (position.status === 'in_consult') {
+        message.textContent = "It's your turn - please go to the consultation room.";
+        box.style.cssText = 'background:var(--amber-bg);border-color:var(--amber)';
+      } else if (position.status === 'completed') {
+        message.textContent = 'Your consultation is complete.';
+        box.style.cssText = 'background:var(--green-bg);border-color:var(--green)';
+      } else if (position.people_ahead === 0) {
+        message.textContent = "You're next. Please wait near the consultation room.";
+      } else {
+        message.textContent = position.people_ahead + ' patient(s) ahead of you.';
+      }
+
+      const list = document.getElementById('tokens');
+      list.innerHTML = '';
+      snapshot.tokens.forEach(function (t) {
+        const row = document.createElement('div');
+        row.className = 'queue-row'
+          + (t.status === 'in_consult' ? ' now' : '')
+          + (['completed', 'no_show'].includes(t.status) ? ' done' : '');
+        row.innerHTML =
+          '<div class="tok">' + t.token + '</div>'
+          + '<div style="flex:1"><div class="small"><strong>'
+          + (t.token === myToken ? 'You' : 'Patient') + '</strong></div>'
+          + '<div class="small muted">' + t.time + '</div></div>'
+          + '<span class="badge st-' + t.status + '">' + t.status_label + '</span>';
+        list.appendChild(row);
+      });
+    } catch (err) {
+      document.getElementById('livedot').textContent = 'Reconnecting...';
+    }
+  }
+
+  setInterval(refresh, 5000);
+})();
+</script>
+{% endblock %}

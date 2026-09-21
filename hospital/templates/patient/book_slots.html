@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Choose a time{% endblock %}
+{% block content %}
+<div class="crumb">
+  <a href="{{ url_for('patient.book_start') }}">Book</a> /
+  <a href="{{ url_for('patient.book_department', department_id=doctor.department_id) }}">{{ doctor.department.name }}</a> /
+  {{ doctor.display_name }}
+</div>
+
+<div class="card" style="margin-bottom:1.25rem">
+  <div class="row">
+    <div class="pic" style="width:48px;height:48px;border-radius:50%;background:var(--teal-600);color:#fff;display:grid;place-items:center;font-weight:700">{{ doctor.user.initials }}</div>
+    <div style="flex:1">
+      <h1 style="margin:0;font-size:1.3rem">{{ doctor.display_name }}</h1>
+      <div class="muted small">
+        {{ doctor.department.name }} &middot; {{ doctor.consultation_fee|money }}
+        {% if doctor.room_no %} &middot; Room {{ doctor.room_no }}{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>Pick a date</h2>
+<div class="daystrip" style="margin:.6rem 0 1.25rem">
+  {% for candidate in calendar %}
+    {% set count = available_days.get(candidate, 0) %}
+    <a class="day {{ 'sel' if candidate == day }} {{ 'none' if not count }}"
+       href="{{ url_for('patient.book_slots', doctor_id=doctor.id, date=candidate.isoformat(), symptoms=symptoms) }}">
+      <div class="dn">{{ candidate.strftime('%a') }}</div>
+      <div class="dd">{{ candidate.day }}</div>
+      <div class="dn">{{ count or '—' }}</div>
+    </a>
+  {% endfor %}
+</div>
+
+<h2>{{ day|prettydate }} - available times</h2>
+{% if slots %}
+  <form method="post" action="{{ url_for('patient.book_confirm') }}" id="slotform">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="doctor_id" value="{{ doctor.id }}">
+    <input type="hidden" name="slot_start" id="slot_start">
+    <input type="hidden" name="symptoms" value="{{ symptoms }}">
+
+    <div class="slot-grid" style="margin:.75rem 0 1.25rem">
+      {% for slot in slots %}
+        <button class="slot" type="button" data-slot="{{ slot.start.strftime('%Y-%m-%d %H:%M') }}">
+          {{ slot.label }}
+        </button>
+      {% endfor %}
+    </div>
+
+    <div class="card" id="confirmbox" style="display:none">
+      <div class="between">
+        <div>
+          <div class="small muted">You are booking</div>
+          <strong id="chosen">—</strong>
+          <div class="small muted">with {{ doctor.display_name }} on {{ day.strftime('%d %B %Y') }}</div>
+        </div>
+        <button class="btn lg" type="submit">Confirm booking</button>
+      </div>
+      {% if symptoms %}
+        <div class="small muted" style="margin-top:.6rem">
+          Your description will be shared with the doctor: &ldquo;{{ symptoms }}&rdquo;
+        </div>
+      {% endif %}
+    </div>
+  </form>
+{% else %}
+  <div class="empty card">
+    <div class="ico">—</div>
+    <p>No free slots on this date.</p>
+    <p class="small">Try another date from the strip above.</p>
+  </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.slot').forEach(function (button) {
+  button.addEventListener('click', function () {
+    document.querySelectorAll('.slot').forEach(b => b.style.cssText = '');
+    button.style.cssText = 'background:var(--teal-500);color:#fff;border-color:var(--teal-500)';
+    document.getElementById('slot_start').value = button.dataset.slot;
+    document.getElementById('chosen').textContent = button.textContent.trim();
+    document.getElementById('confirmbox').style.display = '';
+    document.getElementById('confirmbox').scrollIntoView({behavior: 'smooth', block: 'nearest'});
+  });
+});
+</script>
+{% endblock %}

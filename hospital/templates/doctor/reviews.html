@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}My reviews{% endblock %}
+{% block content %}
+<h1>Patient reviews</h1>
+
+<div class="grid g3" style="margin:1rem 0">
+  <div class="stat teal"><div class="n">{{ '%.1f'|format(doctor.avg_rating or 0) }}</div><div class="l">Average rating</div></div>
+  <div class="stat"><div class="n">{{ doctor.rating_count }}</div><div class="l">Total reviews</div></div>
+  <div class="stat"><div class="n">{{ doctor.experience_years }}</div><div class="l">Years experience</div></div>
+</div>
+
+<div class="card pad0">
+  {% for review in reviews %}
+    <div style="padding:.9rem 1.15rem;border-bottom:1px solid var(--line)">
+      <div class="between">
+        {% with value = review.stars %}{% include "partials/stars.html" %}{% endwith %}
+        <span class="small muted">{{ review.created_at.strftime('%d %b %Y') }}</span>
+      </div>
+      {% if review.comment %}<p style="margin:.35rem 0 0">{{ review.comment }}</p>{% endif %}
+    </div>
+  {% else %}
+    <div class="empty">No reviews yet. They appear here once patients rate a completed visit.</div>
+  {% endfor %}
+</div>
+{% endblock %}

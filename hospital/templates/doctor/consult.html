@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Consultation - token #{{ appointment.token_number }}{% endblock %}
+{% block content %}
+<div class="crumb"><a href="{{ url_for('doctor.queue') }}">Queue</a> / Token #{{ appointment.token_number }}</div>
+
+<div class="split">
+  <div class="card">
+    <div class="between" style="margin-bottom:1rem">
+      <div>
+        <h1 style="margin-bottom:.15rem">{{ appointment.patient.name }}</h1>
+        <div class="muted small">
+          Token #{{ appointment.token_number }} &middot; {{ appointment.slot_start|time12 }}
+          &middot; {{ appointment.appt_date.strftime('%d %b %Y') }}
+        </div>
+      </div>
+      {% include "partials/status.html" %}
+    </div>
+
+    {% if appointment.status != 'in_consult' %}
+      <div class="alert alert-info">
+        This consultation is {{ appointment.status_label.lower() }} and is shown read-only.
+      </div>
+    {% endif %}
+
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% set consultation = appointment.consultation %}
+      {% set readonly = appointment.status != 'in_consult' %}
+
+      <fieldset {{ 'disabled' if readonly }}>
+        <legend>Consultation</legend>
+        <div class="field">
+          <label for="diagnosis">Diagnosis</label>
+          <input type="text" id="diagnosis" name="diagnosis"
+                 value="{{ consultation.diagnosis if consultation else '' }}"
+                 placeholder="e.g. Acute viral pharyngitis">
+        </div>
+        <div class="field">
+          <label for="notes">Clinical notes</label>
+          <textarea id="notes" name="notes" rows="4"
+                    placeholder="Examination findings, history, observations">{{ consultation.notes if consultation else '' }}</textarea>
+        </div>
+        <div class="grid g2">
+          <div class="field">
+            <label for="advice">Advice to patient</label>
+            <textarea id="advice" name="advice" rows="2">{{ consultation.advice if consultation else '' }}</textarea>
+          </div>
+          <div class="field">
+            <label for="follow_up_date">Follow-up date</label>
+            <input type="date" id="follow_up_date" name="follow_up_date"
+                   value="{{ consultation.follow_up_date.isoformat() if consultation and consultation.follow_up_date else '' }}">
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset {{ 'disabled' if readonly }}>
+        <legend>Prescription</legend>
+        <div class="table-wrap">
+          <table id="rxtable">
+            <thead>
+              <tr><th style="width:26%">Medicine</th><th>Dosage</th><th>Frequency</th><th>Duration</th><th>Instructions</th><th></th></tr>
+            </thead>
+            <tbody>
+              {% set items = consultation.prescription_items if consultation else [] %}
+              {% for item in items %}
+                <tr>
+                  <td><input type="text" name="drug" value="{{ item.drug }}"></td>
+                  <td><input type="text" name="dosage" value="{{ item.dosage or '' }}"></td>
+                  <td><input type="text" name="frequency" value="{{ item.frequency or '' }}"></td>
+                  <td><input type="text" name="duration" value="{{ item.duration or '' }}"></td>
+                  <td><input type="text" name="instructions" value="{{ item.instructions or '' }}"></td>
+                  <td><button class="btn sm ghost" type="button" onclick="this.closest('tr').remove()">&times;</button></td>
+                </tr>
+              {% endfor %}
+              {% for _ in range(3 if not items else 1) %}
+                <tr>
+                  <td><input type="text" name="drug" placeholder="Paracetamol 500mg"></td>
+                  <td><input type="text" name="dosage" placeholder="1 tablet"></td>
+                  <td><input type="text" name="frequency" placeholder="Twice daily"></td>
+                  <td><input type="text" name="duration" placeholder="5 days"></td>
+                  <td><input type="text" name="instructions" placeholder="After food"></td>
+                  <td><button class="btn sm ghost" type="button" onclick="this.closest('tr').remove()">&times;</button></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <button class="btn sm ghost" type="button" id="addrow" style="margin-top:.5rem">+ Add medicine</button>
+      </fieldset>
+
+      {% if not readonly %}
+        <button class="btn lg" type="submit">Complete consultation</button>
+        <span class="hint">This closes the token and calls the queue forward.</span>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="stack">
+    <div class="card">
+      <h3>Patient details</h3>
+      <table style="font-size:.86rem">
+        <tr><td class="muted">Age</td><td>{{ profile.age if profile and profile.age else '—' }}</td></tr>
+        <tr><td class="muted">Gender</td><td>{{ (profile.gender if profile else None) or '—' }}</td></tr>
+        <tr><td class="muted">Blood group</td><td>{{ (profile.blood_group if profile else None) or '—' }}</td></tr>
+        <tr><td class="muted">Phone</td><td>{{ appointment.patient.phone or '—' }}</td></tr>
+      </table>
+      {% if profile and profile.allergies %}
+        <div class="alert alert-danger" style="margin-top:.6rem">
+          <strong>Allergies:</strong> {{ profile.allergies }}
+        </div>
+      {% endif %}
+      {% if profile and profile.chronic_conditions %}
+        <div class="alert alert-warning" style="margin-top:.4rem">
+          <strong>Ongoing:</strong> {{ profile.chronic_conditions }}
+        </div>
+      {% endif %}
+    </div>
+
+    {% if appointment.symptoms_text %}
+      <div class="card">
+        <h3>Reported symptoms</h3>
+        <p class="small">{{ appointment.symptoms_text }}</p>
+        {% if appointment.triage_specialty %}
+          <div class="small muted">
+            AI triage: <strong>{{ appointment.triage_specialty }}</strong>
+            ({{ (appointment.triage_confidence * 100)|round|int }}%)
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <div class="card pad0">
+      <div class="card-head"><h3>Previous visits</h3></div>
+      {% if history %}
+        {% for past in history %}
+          <div style="padding:.7rem 1.15rem;border-bottom:1px solid var(--line)">
+            <div class="between">
+              <strong class="small">{{ past.appt_date.strftime('%d %b %Y') }}</strong>
+              <span class="small muted">{{ past.doctor.department.name }}</span>
+            </div>
+            <div class="small muted">
+              {{ past.consultation.diagnosis if past.consultation and past.consultation.diagnosis else 'No diagnosis recorded' }}
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty small">First visit.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('addrow')?.addEventListener('click', function () {
+  const body = document.querySelector('#rxtable tbody');
+  const row = body.rows[body.rows.length - 1].cloneNode(true);
+  row.querySelectorAll('input').forEach(i => i.value = '');
+  body.appendChild(row);
+});
+</script>
+{% endblock %}

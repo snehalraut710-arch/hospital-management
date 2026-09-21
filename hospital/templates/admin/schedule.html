@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Schedule - {{ doctor.display_name }}{% endblock %}
+{% block content %}
+<div class="crumb"><a href="{{ url_for('admin.doctors') }}">Doctors</a> / {{ doctor.display_name }} / Schedule</div>
+<h1>{{ doctor.display_name }}</h1>
+<p class="muted">{{ doctor.department.name }} &middot; Room {{ doctor.room_no or '—' }}</p>
+
+<div class="split" style="margin-top:1.25rem">
+  <div class="stack">
+    <div class="card pad0">
+      <div class="card-head"><h2>Weekly sittings</h2></div>
+      {% if schedules %}
+        <div class="table-wrap"><table>
+          <thead><tr><th>Day</th><th>Time</th><th>Slot</th><th>Max</th><th>Capacity</th><th></th></tr></thead>
+          <tbody>
+          {% for schedule in schedules %}
+            <tr>
+              <td><strong>{{ schedule.weekday_name }}</strong></td>
+              <td>{{ schedule.start_time|time12 }} &ndash; {{ schedule.end_time|time12 }}</td>
+              <td>{{ schedule.slot_minutes }}m</td>
+              <td>{{ schedule.max_tokens }}</td>
+              <td><span class="badge teal">{{ schedule.capacity }}</span></td>
+              <td class="right">
+                <form method="post" action="{{ url_for('admin.delete_schedule', schedule_id=schedule.id) }}"
+                      onsubmit="return confirm('Remove this sitting? Existing appointments are kept.')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn sm ghost" type="submit">Remove</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table></div>
+      {% else %}
+        <div class="empty">No sittings yet. Add one on the right - without a sitting,
+          this doctor has no bookable slots.</div>
+      {% endif %}
+    </div>
+
+    <div class="card pad0">
+      <div class="card-head"><h2>Leave and holidays</h2></div>
+      {% if exceptions %}
+        <div class="table-wrap"><table>
+          <thead><tr><th>Date</th><th>Reason</th><th></th></tr></thead>
+          <tbody>
+          {% for exception in exceptions %}
+            <tr>
+              <td><strong>{{ exception.date.strftime('%d %b %Y') }}</strong>
+                  <div class="small muted">{{ exception.date.strftime('%A') }}</div></td>
+              <td>{{ exception.reason or 'Leave' }}</td>
+              <td class="right">
+                <form method="post" action="{{ url_for('admin.delete_leave', exception_id=exception.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn sm ghost" type="submit">Remove</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table></div>
+      {% else %}
+        <div class="empty small">No upcoming leave.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="stack">
+    <div class="card">
+      <h3>Add a sitting</h3>
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field">
+          <label for="weekday">Day of the week</label>
+          <select id="weekday" name="weekday" required>
+            {% for name in weekdays %}<option value="{{ loop.index0 }}">{{ name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="grid g2">
+          <div class="field">
+            <label for="start_time">Start</label>
+            <input type="time" id="start_time" name="start_time" value="09:00" required>
+          </div>
+          <div class="field">
+            <label for="end_time">Finish</label>
+            <input type="time" id="end_time" name="end_time" value="13:00" required>
+          </div>
+        </div>
+        <div class="grid g2">
+          <div class="field">
+            <label for="slot_minutes">Slot length (min)</label>
+            <input type="number" id="slot_minutes" name="slot_minutes" value="15" min="5" max="120" step="5">
+          </div>
+          <div class="field">
+            <label for="max_tokens">Max tokens</label>
+            <input type="number" id="max_tokens" name="max_tokens" value="20" min="1" max="100">
+          </div>
+        </div>
+        <button class="btn block" type="submit">Add sitting</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>Record leave</h3>
+      <p class="hint" style="margin-top:-.3rem">
+        Patients already booked on that date are notified automatically.
+      </p>
+      <form method="post" action="{{ url_for('admin.add_leave', doctor_id=doctor.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field">
+          <label for="date">Date</label>
+          <input type="date" id="date" name="date" required min="{{ today.isoformat() }}">
+        </div>
+        <div class="field">
+          <label for="reason">Reason</label>
+          <input type="text" id="reason" name="reason" placeholder="Annual leave">
+        </div>
+        <button class="btn block warn" type="submit">Record leave</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

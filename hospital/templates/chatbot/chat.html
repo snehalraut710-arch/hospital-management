@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block title %}AI Assistant{% endblock %}
+{% block content %}
+
+<div class="between" style="margin-bottom:1rem">
+  <div>
+    <h1 style="margin-bottom:.15rem">AI Symptom Assistant</h1>
+    <p class="muted small" style="margin:0">
+      Runs entirely offline - no data leaves this machine.
+    </p>
+  </div>
+  <span class="badge teal">Offline ML model + clinical rules</span>
+</div>
+
+<div class="chat-shell">
+  <div class="chat-box">
+    <div class="chat-log" id="log">
+      <div class="msg bot">{{ greeting }}</div>
+    </div>
+    <div class="chips" id="chips">
+      <button class="chip" type="button">Chest pain when I climb stairs</button>
+      <button class="chip" type="button">Throbbing headache and light hurts my eyes</button>
+      <button class="chip" type="button">My child has a fever and is pulling his ear</button>
+      <button class="chip" type="button">Burning when I pee</button>
+    </div>
+    <form class="chat-input" id="form" autocomplete="off">
+      <input type="text" id="input" placeholder="Describe your symptoms..." maxlength="1000" required>
+      <button class="btn" type="submit" id="send">Send</button>
+    </form>
+  </div>
+
+  <aside class="stack">
+    <div class="card" id="panel" style="display:none">
+      <h3 style="margin-bottom:.15rem">Why this recommendation</h3>
+      <p class="muted small" style="margin-bottom:.75rem">
+        The assistant shows its reasoning rather than only its answer.
+      </p>
+
+      <div style="margin-bottom:.9rem">
+        <div class="between" style="margin-bottom:.15rem">
+          <strong id="p-dept">—</strong>
+          <span class="small muted" id="p-pct">—</span>
+        </div>
+        <div class="conf" id="p-bar"><i style="width:0%"></i></div>
+      </div>
+
+      <div id="p-terms-wrap" style="margin-bottom:.9rem;display:none">
+        <div class="small muted" style="margin-bottom:.25rem">Key phrases detected</div>
+        <div id="p-terms"></div>
+      </div>
+
+      <div id="p-alts-wrap" style="margin-bottom:.9rem;display:none">
+        <div class="small muted" style="margin-bottom:.35rem">Other possibilities considered</div>
+        <div id="p-alts"></div>
+      </div>
+
+      <div class="disclaimer" id="p-disclaimer"></div>
+    </div>
+
+    <div class="card" id="docs" style="display:none">
+      <h3>Suggested doctors</h3>
+      <div id="doc-list" class="stack" style="gap:.6rem"></div>
+    </div>
+
+    <div class="card">
+      <h3>What this can and cannot do</h3>
+      <ul class="small muted" style="padding-left:1.1rem;margin:0">
+        <li>Suggests which <strong>department</strong> fits your symptoms.</li>
+        <li>Flags emergency presentations immediately.</li>
+        <li>Ranks doctors by availability, then rating.</li>
+        <li>It does <strong>not</strong> diagnose illness or prescribe treatment.</li>
+      </ul>
+    </div>
+  </aside>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const log   = document.getElementById('log');
+  const form  = document.getElementById('form');
+  const input = document.getElementById('input');
+  const send  = document.getElementById('send');
+
+  // A tiny subset of markdown: the bot only ever emits **bold**.
+  function render(text) {
+    const escaped = text.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    return escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  }
+
+  function bubble(text, who, alarm) {
+    const el = document.createElement('div');
+    el.className = 'msg ' + who + (alarm ? ' alarm' : '');
+    el.innerHTML = render(text);
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
+    return el;
+  }
+
+  function updatePanel(result, doctors) {
+    if (!result) return;
+    const panel = document.getElementById('panel');
+    panel.style.display = '';
+
+    document.getElementById('p-dept').textContent = result.department;
+    document.getElementById('p-pct').textContent  = result.percent + '% confidence';
+
+    const bar = document.getElementById('p-bar');
+    bar.className = 'conf' + (result.percent < 35 ? ' vlow' : result.percent < 60 ? ' low' : '');
+    bar.querySelector('i').style.width = Math.max(result.percent, 3) + '%';
+
+    const termsWrap = document.getElementById('p-terms-wrap');
+    const terms = document.getElementById('p-terms');
+    terms.innerHTML = '';
+    if (result.matched_terms && result.matched_terms.length) {
+      termsWrap.style.display = '';
+      result.matched_terms.forEach(function (t) {
+        const s = document.createElement('span');
+        s.className = 'term'; s.textContent = t;
+        terms.appendChild(s);
+      });
+    } else { termsWrap.style.display = 'none'; }
+
+    const altsWrap = document.getElementById('p-alts-wrap');
+    const alts = document.getElementById('p-alts');
+    alts.innerHTML = '';
+    const others = (result.scores || []).filter(s => s.department !== result.department);
+    if (others.length) {
+      altsWrap.style.display = '';
+      others.slice(0, 2).forEach(function (s) {
+        const row = document.createElement('div');
+        row.className = 'hbar';
+        row.innerHTML = '<div class="top"><span>' + s.department + '</span><span class="muted">'
+                      + s.percent + '%</span></div><div class="track"><div class="fill" style="width:'
+                      + s.percent + '%"></div></div>';
+        alts.appendChild(row);
+      });
+    } else { altsWrap.style.display = 'none'; }
+
+    document.getElementById('p-disclaimer').textContent = result.disclaimer;
+
+    const docsCard = document.getElementById('docs');
+    const list = document.getElementById('doc-list');
+    list.innerHTML = '';
+    if (doctors && doctors.length) {
+      docsCard.style.display = '';
+      doctors.forEach(function (d) {
+        const item = document.createElement('div');
+        item.style.cssText = 'padding-bottom:.6rem;border-bottom:1px solid var(--line)';
+        item.innerHTML =
+          '<strong>' + d.name + '</strong>'
+          + '<div class="small muted">' + d.department
+          + (d.qualification ? ' &middot; ' + d.qualification : '') + '</div>'
+          + '<div class="small muted">' + (d.rating || 0).toFixed(1) + ' ★ ('
+          + d.rating_count + ') &middot; ' + d.experience + ' yrs'
+          + (d.room ? ' &middot; Room ' + d.room : '') + '</div>'
+          + '<a class="btn sm" style="margin-top:.4rem" href="/patient/book/doctor/' + d.id + '">Book</a>';
+        list.appendChild(item);
+      });
+    } else { docsCard.style.display = 'none'; }
+  }
+
+  async function ask(text) {
+    bubble(text, 'me');
+    input.value = '';
+    send.disabled = true;
+
+    const typing = document.createElement('div');
+    typing.className = 'typing';
+    typing.textContent = 'Assistant is thinking...';
+    log.appendChild(typing);
+    log.scrollTop = log.scrollHeight;
+
+    try {
+      const response = await fetch('{{ url_for("chatbot.message") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
+        body: JSON.stringify({message: text})
+      });
+      const data = await response.json();
+      typing.remove();
+      bubble(data.reply, 'bot', data.result && data.result.is_red_flag);
+      updatePanel(data.result, data.doctors);
+    } catch (err) {
+      typing.remove();
+      bubble('Sorry, something went wrong reaching the assistant. Please try again.', 'bot');
+    } finally {
+      send.disabled = false;
+      input.focus();
+    }
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (text) ask(text);
+  });
+
+  document.getElementById('chips').addEventListener('click', function (e) {
+    if (e.target.classList.contains('chip')) ask(e.target.textContent.trim());
+  });
+
+  // Let the homepage hand a question straight through.
+  const seeded = new URLSearchParams(location.search).get('q');
+  if (seeded && seeded.trim()) ask(seeded.trim());
+})();
+</script>
+{% endblock %}

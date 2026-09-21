@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Doctors{% endblock %}
+{% block content %}
+<div class="between" style="margin-bottom:1rem">
+  <h1>Doctors</h1>
+  <a class="btn" href="{{ url_for('admin.new_doctor') }}">Add doctor</a>
+</div>
+
+<div class="card pad0">
+  <div class="table-wrap"><table>
+    <thead><tr><th>Name</th><th>Department</th><th>Experience</th><th>Fee</th><th>Room</th><th>Rating</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for doctor in doctors %}
+      <tr>
+        <td>
+          <strong>{{ doctor.display_name }}</strong>
+          <div class="small muted">{{ doctor.user.email }}</div>
+        </td>
+        <td class="small">{{ doctor.department.name }}</td>
+        <td>{{ doctor.experience_years }} yrs</td>
+        <td>{{ doctor.consultation_fee|money }}</td>
+        <td>{{ doctor.room_no or '—' }}</td>
+        <td>{% with value = doctor.avg_rating %}{% include "partials/stars.html" %}{% endwith %}
+            <span class="small muted">({{ doctor.rating_count }})</span></td>
+        <td><span class="badge {{ 'green' if doctor.is_active else 'grey' }}">
+            {{ 'Active' if doctor.is_active else 'Inactive' }}</span></td>
+        <td class="right nowrap">
+          <a class="btn sm ghost" href="{{ url_for('admin.doctor_schedule', doctor_id=doctor.id) }}">Schedule</a>
+          <a class="btn sm ghost" href="{{ url_for('admin.edit_doctor', doctor_id=doctor.id) }}">Edit</a>
+          <form method="post" action="{{ url_for('admin.toggle_doctor', doctor_id=doctor.id) }}" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn sm ghost" type="submit">{{ 'Disable' if doctor.is_active else 'Enable' }}</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}

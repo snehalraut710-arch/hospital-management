@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<h1>Reports</h1>
+<p class="muted">Operational statistics across the whole system.</p>
+
+<div class="grid g4" style="margin:1.25rem 0">
+  <div class="stat teal"><div class="n">{{ stats.patients }}</div><div class="l">Patients</div></div>
+  <div class="stat"><div class="n">{{ stats.doctors }}</div><div class="l">Doctors</div></div>
+  <div class="stat red"><div class="n">{{ no_show.rate }}%</div><div class="l">No-show rate</div></div>
+  <div class="stat amber"><div class="n">{{ avg_wait }}m</div><div class="l">Avg consultation</div></div>
+</div>
+
+<div class="card" style="margin-bottom:1.25rem">
+  <h2>Appointments, last 30 days</h2>
+  {% set peak = per_day|map(attribute='count')|max %}
+  <div class="bars">
+    {% for point in per_day %}
+      <div class="b" style="height:{{ (point.count / peak * 100) if peak else 0 }}%" title="{{ point.label }}: {{ point.count }}"></div>
+    {% endfor %}
+  </div>
+  <div class="barlabels">
+    {% for point in per_day %}<div>{{ point.label.split(' ')[0] if loop.index0 % 3 == 0 else '' }}</div>{% endfor %}
+  </div>
+</div>
+
+<div class="grid g2" style="margin-bottom:1.25rem">
+  <div class="card">
+    <h2>Appointments by department</h2>
+    {% set top = per_department|map(attribute='count')|max %}
+    {% for row in per_department %}
+      <div class="hbar">
+        <div class="top"><span>{{ row.department }}</span><span class="muted">{{ row.count }}</span></div>
+        <div class="track"><div class="fill" style="width:{{ (row.count / top * 100) if top else 0 }}%"></div></div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <h2>Appointment outcomes</h2>
+    {% set total = statuses|sum(attribute='count') %}
+    {% for row in statuses %}
+      <div class="hbar">
+        <div class="top">
+          <span><span class="badge st-{{ row.status }}">{{ row.label }}</span></span>
+          <span class="muted">{{ row.count }} ({{ ((row.count / total * 100)|round(1)) if total else 0 }}%)</span>
+        </div>
+        <div class="track"><div class="fill" style="width:{{ (row.count / total * 100) if total else 0 }}%"></div></div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="grid g2" style="margin-bottom:1.25rem">
+  <div class="card pad0">
+    <div class="card-head"><h2>Busiest doctors</h2></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Doctor</th><th>Department</th><th>Appointments</th><th>Rating</th></tr></thead>
+      <tbody>
+      {% for row in busiest %}
+        <tr>
+          <td>{{ row.doctor }}</td>
+          <td class="small muted">{{ row.department }}</td>
+          <td><strong>{{ row.appointments }}</strong></td>
+          <td>{% with value = row.rating %}{% include "partials/stars.html" %}{% endwith %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h2>AI assistant usage</h2>
+    <div class="grid g2" style="margin-bottom:1rem">
+      <div class="stat"><div class="n">{{ chatbot.questions }}</div><div class="l">Questions asked</div></div>
+      <div class="stat teal"><div class="n">{{ chatbot.conversion }}%</div><div class="l">Led to a booking</div></div>
+    </div>
+    <h3>Most-routed departments</h3>
+    {% set top = symptoms|map(attribute='count')|max %}
+    {% for row in symptoms %}
+      <div class="hbar">
+        <div class="top"><span>{{ row.department }}</span><span class="muted">{{ row.count }}</span></div>
+        <div class="track"><div class="fill" style="width:{{ (row.count / top * 100) if top else 0 }}%"></div></div>
+      </div>
+    {% else %}
+      <p class="muted small">No chatbot conversations recorded yet.</p>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>Patient satisfaction</h2>
+  <div class="row" style="align-items:flex-start;gap:2rem">
+    <div class="center">
+      <div style="font-size:3rem;font-weight:800;color:var(--teal-600);line-height:1">{{ rating.average }}</div>
+      <div class="small muted">from {{ rating.count }} ratings</div>
+    </div>
+    <div style="flex:1">
+      {% for star, count in rating.distribution.items() %}
+        <div class="hbar">
+          <div class="top"><span>{{ star }} star</span><span class="muted">{{ count }}</span></div>
+          <div class="track"><div class="fill" style="width:{{ (count / rating.count * 100) if rating.count else 0 }}%"></div></div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

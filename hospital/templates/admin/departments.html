@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Departments{% endblock %}
+{% block content %}
+<h1>Departments</h1>
+
+<div class="split" style="margin-top:1.25rem">
+  <div class="card pad0">
+    <div class="card-head"><h2>{{ departments|length }} departments</h2></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>Name</th><th>Doctors</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for department in departments %}
+        <tr>
+          <td><span class="badge teal">{{ department.icon }}</span></td>
+          <td><strong>{{ department.name }}</strong>
+              <div class="small muted">{{ (department.description or '')[:60] }}</div></td>
+          <td>{{ department.doctors|length }}</td>
+          <td><span class="badge {{ 'green' if department.is_active else 'grey' }}">
+              {{ 'Active' if department.is_active else 'Inactive' }}</span></td>
+          <td class="right">
+            <form method="post" action="{{ url_for('admin.toggle_department', department_id=department.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn sm ghost" type="submit">{{ 'Deactivate' if department.is_active else 'Activate' }}</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3>Add a department</h3>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" required placeholder="Nephrology">
+      </div>
+      <div class="field">
+        <label for="icon">Icon (1&ndash;2 characters)</label>
+        <input type="text" id="icon" name="icon" maxlength="4" placeholder="KD">
+      </div>
+      <div class="field">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="3"></textarea>
+      </div>
+      <button class="btn block" type="submit">Add department</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

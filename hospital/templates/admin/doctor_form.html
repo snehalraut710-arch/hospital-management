@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit doctor' if doctor else 'Add doctor' }}{% endblock %}
+{% block content %}
+<div class="narrow">
+  <div class="crumb"><a href="{{ url_for('admin.doctors') }}">Doctors</a> / {{ 'Edit' if doctor else 'New' }}</div>
+  <h1>{{ 'Edit ' + doctor.display_name if doctor else 'Add a doctor' }}</h1>
+
+  <form method="post" class="card">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <fieldset>
+      <legend>Account</legend>
+      <div class="field">
+        <label for="name">Full name</label>
+        <input type="text" id="name" name="name" required
+               value="{{ doctor.user.name if doctor else form.get('name','') }}">
+      </div>
+      <div class="grid g2">
+        <div class="field">
+          <label for="email">Email</label>
+          {% if doctor %}
+            <input type="email" value="{{ doctor.user.email }}" disabled>
+          {% else %}
+            <input type="email" id="email" name="email" required value="{{ form.get('email','') }}">
+          {% endif %}
+        </div>
+        <div class="field">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" name="phone"
+                 value="{{ doctor.user.phone if doctor else form.get('phone','') }}">
+        </div>
+      </div>
+      <div class="field">
+        <label for="password">{{ 'New password' if doctor else 'Password' }}</label>
+        <input type="password" id="password" name="password" {{ '' if doctor else 'required' }}
+               placeholder="{{ 'Leave blank to keep current' if doctor else 'At least 6 characters' }}">
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Professional details</legend>
+      <div class="field">
+        <label for="department_id">Department</label>
+        <select id="department_id" name="department_id" required>
+          <option value="">Choose...</option>
+          {% for department in departments %}
+            <option value="{{ department.id }}"
+              {{ 'selected' if (doctor and doctor.department_id == department.id) or form.get('department_id')|string == department.id|string }}>
+              {{ department.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="qualification">Qualification</label>
+        <input type="text" id="qualification" name="qualification" placeholder="MBBS, MD (Cardiology)"
+               value="{{ doctor.qualification if doctor else form.get('qualification','') }}">
+      </div>
+      <div class="grid g3">
+        <div class="field">
+          <label for="experience_years">Experience (years)</label>
+          <input type="number" id="experience_years" name="experience_years" min="0" max="60"
+                 value="{{ doctor.experience_years if doctor else form.get('experience_years','') }}">
+        </div>
+        <div class="field">
+          <label for="consultation_fee">Consultation fee</label>
+          <input type="number" id="consultation_fee" name="consultation_fee" min="0" step="50"
+                 value="{{ doctor.consultation_fee|int if doctor else form.get('consultation_fee','') }}">
+        </div>
+        <div class="field">
+          <label for="room_no">Room number</label>
+          <input type="text" id="room_no" name="room_no"
+                 value="{{ doctor.room_no if doctor else form.get('room_no','') }}">
+        </div>
+      </div>
+      <div class="field">
+        <label for="bio">Biography</label>
+        <textarea id="bio" name="bio" rows="3">{{ doctor.bio if doctor else form.get('bio','') }}</textarea>
+      </div>
+    </fieldset>
+
+    <div class="row">
+      <button class="btn" type="submit">{{ 'Save changes' if doctor else 'Add doctor' }}</button>
+      <a class="btn ghost" href="{{ url_for('admin.doctors') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

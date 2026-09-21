@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}About{% endblock %}
+{% block content %}
+<div class="narrow">
+  <h1>About MediQueue</h1>
+  <p>
+    MediQueue is an AI powered hospital appointment and queue management system. It exists to
+    remove two everyday frustrations: not knowing which specialist to see, and not knowing how
+    long you will be waiting once you arrive.
+  </p>
+
+  <h2>How the AI works</h2>
+  <p>
+    The symptom checker runs entirely on this machine - there is no external API and no
+    internet connection required. It combines two layers:
+  </p>
+  <ul>
+    <li>A <strong>machine learning classifier</strong> (word and character TF-IDF features into
+        logistic regression) trained on a labelled dataset of symptom descriptions.</li>
+    <li>A <strong>curated knowledge base</strong> of weighted symptom phrases, including
+        red-flag rules that override the model outright for emergency presentations.</li>
+  </ul>
+  <p>
+    Every recommendation shows its confidence and the words that drove it, so you can see
+    <em>why</em> it suggested what it did. The assistant names a department, never a disease.
+  </p>
+
+  <div class="disclaimer">
+    This is a student project built for educational purposes. It is not a medical device and
+    must not be used for real clinical decisions.
+  </div>
+
+  <h2 style="margin-top:1.5rem">At a glance</h2>
+  <div class="grid g3">
+    <div class="stat teal"><div class="n">{{ stats.doctors }}</div><div class="l">Doctors</div></div>
+    <div class="stat"><div class="n">{{ stats.departments }}</div><div class="l">Departments</div></div>
+    <div class="stat"><div class="n">{{ stats.patients }}</div><div class="l">Registered patients</div></div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Appointment #{{ appointment.token_number }}{% endblock %}
+{% block content %}
+<div class="crumb"><a href="{{ url_for('patient.appointments') }}">My appointments</a> / Token #{{ appointment.token_number }}</div>
+
+<div class="split">
+  <div class="stack">
+    <div class="card">
+      <div class="between">
+        <div>
+          <h1 style="margin-bottom:.2rem">{{ appointment.doctor.display_name }}</h1>
+          <div class="muted">{{ appointment.doctor.department.name }}
+            {% if appointment.doctor.room_no %} &middot; Room {{ appointment.doctor.room_no }}{% endif %}</div>
+        </div>
+        {% include "partials/status.html" %}
+      </div>
+
+      <div class="grid g3" style="margin-top:1rem">
+        <div class="stat"><div class="n">{{ appointment.appt_date.strftime('%d %b') }}</div><div class="l">Date</div></div>
+        <div class="stat"><div class="n">{{ appointment.slot_start|time12 }}</div><div class="l">Time</div></div>
+        <div class="stat teal"><div class="n">#{{ appointment.token_number }}</div><div class="l">Token</div></div>
+      </div>
+
+      {% if appointment.symptoms_text %}
+        <hr>
+        <h3>What you told us</h3>
+        <p class="muted">{{ appointment.symptoms_text }}</p>
+        {% if appointment.triage_specialty %}
+          <div class="small muted">
+            AI assistant suggested <strong>{{ appointment.triage_specialty }}</strong>
+            ({{ (appointment.triage_confidence * 100)|round|int }}% confidence)
+          </div>
+        {% endif %}
+      {% endif %}
+
+      {% if appointment.status == 'booked' and appointment.appt_date == today %}
+        <hr>
+        <div class="between" style="background:var(--teal-50);padding:.9rem 1.1rem;border-radius:var(--radius-sm)">
+          <div>
+            <strong>Arrived at the hospital?</strong>
+            <div class="small muted">Checking in tells the doctor you are here, and
+              moves you ahead of patients who have not arrived yet.</div>
+          </div>
+          <form method="post" action="{{ url_for('patient.check_in', appointment_id=appointment.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn" type="submit">Check in</button>
+          </form>
+        </div>
+      {% elif appointment.status == 'checked_in' %}
+        <hr>
+        <div class="alert alert-success" style="margin:0">
+          Checked in at {{ appointment.checked_in_at|time12 }}. Please watch the live queue.
+        </div>
+      {% endif %}
+
+      {% if appointment.can_cancel %}
+        <hr>
+        <form method="post" action="{{ url_for('patient.cancel', appointment_id=appointment.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="row">
+            <input type="text" name="reason" placeholder="Reason (optional)" style="flex:1">
+            <button class="btn danger" type="submit">Cancel appointment</button>
+          </div>
+        </form>
+      {% endif %}
+    </div>
+
+    {% if appointment.consultation %}
+      {% set consultation = appointment.consultation %}
+      <div class="card">
+        <div class="between">
+          <h2>Consultation record</h2>
+          <a class="btn sm ghost" href="{{ url_for('patient.prescription', appointment_id=appointment.id) }}">View prescription</a>
+        </div>
+        {% if consultation.diagnosis %}<p><strong>Diagnosis:</strong> {{ consultation.diagnosis }}</p>{% endif %}
+        {% if consultation.notes %}<p><strong>Notes:</strong> {{ consultation.notes }}</p>{% endif %}
+        {% if consultation.advice %}<p><strong>Advice:</strong> {{ consultation.advice }}</p>{% endif %}
+        {% if consultation.follow_up_date %}
+          <div class="badge amber">Follow-up: {{ consultation.follow_up_date.strftime('%d %b %Y') }}</div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% if appointment.can_rate %}
+      <div class="card">
+        <h2>Rate your visit</h2>
+        <p class="muted small">How was your consultation with {{ appointment.doctor.display_name }}?</p>
+        <form method="post" action="{{ url_for('patient.rate', appointment_id=appointment.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="field">
+            <label for="stars">Rating</label>
+            <select id="stars" name="stars" required>
+              <option value="">Choose...</option>
+              {% for n in [5,4,3,2,1] %}
+                <option value="{{ n }}">{{ '★' * n }}{{ '☆' * (5-n) }} - {{ n }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label for="comment">Comment (optional)</label>
+            <textarea id="comment" name="comment" rows="2"></textarea>
+          </div>
+          <button class="btn" type="submit">Submit rating</button>
+        </form>
+      </div>
+    {% elif appointment.rating %}
+      <div class="card">
+        <h2>Your rating</h2>
+        {% with value = appointment.rating.stars %}{% include "partials/stars.html" %}{% endwith %}
+        {% if appointment.rating.comment %}<p style="margin-top:.4rem">{{ appointment.rating.comment }}</p>{% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="stack">
+    {% if position %}
+      <div class="token-hero">
+        <div class="lbl">Your token</div>
+        <div class="big">{{ position.token }}</div>
+        <div class="lbl" style="margin-top:.5rem">Now serving {{ position.now_serving or '—' }}</div>
+      </div>
+      <div class="card">
+        <div class="between"><span class="muted">People ahead</span><strong>{{ position.people_ahead }}</strong></div>
+        <div class="between"><span class="muted">Estimated wait</span><strong>{{ position.estimated_wait_minutes }} min</strong></div>
+        <a class="btn block" style="margin-top:.8rem" href="{{ url_for('patient.live_queue', appointment_id=appointment.id) }}">Open live queue</a>
+      </div>
+    {% endif %}
+
+    <div class="card">
+      <h3>Before you arrive</h3>
+      <ul class="small muted" style="padding-left:1.1rem;margin:0">
+        <li>Arrive 10 minutes before your slot.</li>
+        <li>Check in at reception to confirm your token.</li>
+        <li>Bring any previous prescriptions or reports.</li>
+        <li>Watch the live queue so you know when you're close.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

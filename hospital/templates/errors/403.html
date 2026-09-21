@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Not permitted{% endblock %}
+{% block content %}
+<div class="narrow center card" style="padding:3rem 1.5rem">
+  <h1>Not permitted</h1>
+  <p class="muted">Your account does not have access to that page.</p>
+  {% if not current_user.is_authenticated %}
+    <a class="btn" href="{{ url_for('auth.login') }}">Sign in</a>
+  {% else %}
+    <a class="btn" href="{{ url_for('public.home') }}">Back to home</a>
+  {% endif %}
+</div>
+{% endblock %}

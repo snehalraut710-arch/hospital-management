@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="between" style="margin-bottom:1.25rem">
+  <div>
+    <h1 style="margin-bottom:.15rem">Hello, {{ current_user.name.split()[0] }}</h1>
+    <p class="muted small" style="margin:0">{{ today.strftime('%A, %d %B %Y') }}</p>
+  </div>
+  <div class="row">
+    <a class="btn ghost" href="{{ url_for('chatbot.chat') }}">Ask the AI assistant</a>
+    <a class="btn" href="{{ url_for('patient.book_start') }}">Book an appointment</a>
+  </div>
+</div>
+
+{% if live_today %}
+  {% for appointment in live_today %}
+    <div class="card" style="margin-bottom:1rem;border-color:var(--teal-300);background:var(--teal-50)">
+      <div class="between">
+        <div>
+          <span class="badge teal">Today</span>
+          <h3 style="margin:.4rem 0 .1rem">Token #{{ appointment.token_number }} &middot; {{ appointment.doctor.display_name }}</h3>
+          <div class="muted small">
+            {{ appointment.slot_start|time12 }} &middot; {{ appointment.doctor.department.name }}
+            {% if appointment.doctor.room_no %} &middot; Room {{ appointment.doctor.room_no }}{% endif %}
+          </div>
+        </div>
+        <a class="btn" href="{{ url_for('patient.live_queue', appointment_id=appointment.id) }}">View live queue</a>
+      </div>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="split">
+  <div class="stack">
+    <div class="card pad0">
+      <div class="card-head">
+        <h2>Upcoming appointments</h2>
+        <a class="small" href="{{ url_for('patient.appointments') }}">View all</a>
+      </div>
+      {% if upcoming %}
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>When</th><th>Doctor</th><th>Token</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+            {% for appointment in upcoming %}
+              <tr>
+                <td>
+                  <strong>{{ appointment.appt_date|prettydate }}</strong>
+                  <div class="small muted">{{ appointment.slot_start|time12 }}</div>
+                </td>
+                <td>
+                  {{ appointment.doctor.display_name }}
+                  <div class="small muted">{{ appointment.doctor.department.name }}</div>
+                </td>
+                <td><span class="badge teal">#{{ appointment.token_number }}</span></td>
+                <td>{% include "partials/status.html" %}</td>
+                <td class="right">
+                  <a class="btn sm ghost" href="{{ url_for('patient.appointment_detail', appointment_id=appointment.id) }}">Details</a>
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty">
+          <div class="ico">+</div>
+          <p>No upcoming appointments.</p>
+          <a class="btn" href="{{ url_for('patient.book_start') }}">Book one now</a>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="card pad0">
+      <div class="card-head"><h2>Recent visits</h2></div>
+      {% if past %}
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Doctor</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+            {% for appointment in past %}
+              <tr>
+                <td>{{ appointment.appt_date.strftime('%d %b %Y') }}</td>
+                <td>{{ appointment.doctor.display_name }}</td>
+                <td>{% include "partials/status.html" %}</td>
+                <td class="right">
+                  {% if appointment.consultation %}
+                    <a class="btn sm ghost" href="{{ url_for('patient.prescription', appointment_id=appointment.id) }}">Prescription</a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty">No past visits yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="stack">
+    {% if awaiting_rating %}
+      <div class="card">
+        <h3>Rate your recent visits</h3>
+        <p class="muted small">Your feedback helps other patients choose.</p>
+        {% for appointment in awaiting_rating %}
+          <div style="padding:.5rem 0;border-top:1px solid var(--line)">
+            <strong class="small">{{ appointment.doctor.display_name }}</strong>
+            <div class="small muted">{{ appointment.appt_date.strftime('%d %b') }}</div>
+            <a class="btn sm ghost" style="margin-top:.3rem"
+               href="{{ url_for('patient.appointment_detail', appointment_id=appointment.id) }}">Leave a rating</a>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="card">
+      <h3>Not sure who to see?</h3>
+      <p class="muted small">
+        Describe your symptoms and the AI assistant will suggest the right department
+        and the doctors with the soonest availability.
+      </p>
+      <a class="btn block" href="{{ url_for('chatbot.chat') }}">Open AI assistant</a>
+    </div>
+
+    <div class="card">
+      <h3>Your details</h3>
+      {% set profile = current_user.patient_profile %}
+      <table style="font-size:.86rem">
+        <tr><td class="muted">Age</td><td>{{ profile.age if profile and profile.age else '—' }}</td></tr>
+        <tr><td class="muted">Blood group</td><td>{{ profile.blood_group if profile else '—' or '—' }}</td></tr>
+        <tr><td class="muted">Allergies</td><td>{{ (profile.allergies if profile else None) or 'None recorded' }}</td></tr>
+      </table>
+      <a class="btn sm ghost block" style="margin-top:.6rem" href="{{ url_for('auth.profile') }}">Edit profile</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

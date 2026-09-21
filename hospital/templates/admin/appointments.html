@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}All appointments{% endblock %}
+{% block content %}
+<h1>All appointments</h1>
+
+<form class="card" method="get" style="margin:1rem 0">
+  <div class="grid g4" style="align-items:end">
+    <div class="field" style="margin:0">
+      <label for="status">Status</label>
+      <select id="status" name="status">
+        <option value="">Any status</option>
+        {% for key, label in statuses.items() %}
+          <option value="{{ key }}" {{ 'selected' if selected.status == key }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field" style="margin:0">
+      <label for="department">Department</label>
+      <select id="department" name="department">
+        <option value="">Any department</option>
+        {% for department in departments %}
+          <option value="{{ department.id }}" {{ 'selected' if selected.department == department.id }}>{{ department.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field" style="margin:0">
+      <label for="date">Date</label>
+      <input type="date" id="date" name="date" value="{{ selected.date or '' }}">
+    </div>
+    <div class="row">
+      <button class="btn" type="submit">Filter</button>
+      <a class="btn ghost" href="{{ url_for('admin.appointments') }}">Reset</a>
+    </div>
+  </div>
+</form>
+
+<div class="card pad0">
+  <div class="table-wrap"><table>
+    <thead><tr><th>Date</th><th>Patient</th><th>Doctor</th><th>Department</th><th>Token</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for appointment in pagination.items %}
+      <tr>
+        <td>{{ appointment.appt_date.strftime('%d %b %Y') }}
+            <div class="small muted">{{ appointment.slot_start|time12 }}</div></td>
+        <td>{{ appointment.patient.name }}</td>
+        <td>{{ appointment.doctor.display_name }}</td>
+        <td class="small muted">{{ appointment.doctor.department.name }}</td>
+        <td><span class="badge grey">#{{ appointment.token_number }}</span></td>
+        <td>{% include "partials/status.html" %}</td>
+        <td class="right">
+          {% if appointment.can_cancel %}
+            <form method="post" action="{{ url_for('admin.cancel_appointment', appointment_id=appointment.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn sm ghost" type="submit">Cancel</button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="empty">No appointments match those filters.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% include "partials/pagination.html" %}
+{% endblock %}

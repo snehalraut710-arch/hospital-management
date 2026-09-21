@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Live queues{% endblock %}
+{% block content %}
+<div class="between" style="margin-bottom:1rem">
+  <div>
+    <h1 style="margin-bottom:.15rem">Live queues</h1>
+    <p class="muted small" style="margin:0">{{ today.strftime('%A, %d %B %Y') }}</p>
+  </div>
+  <span class="badge teal">Refreshes every 15s</span>
+</div>
+
+{% for session in sessions %}
+  {% set snapshot = snapshots[session.id] %}
+  <div class="card pad0" style="margin-bottom:1rem">
+    <div class="card-head">
+      <div>
+        <h2 style="margin:0">{{ session.doctor.display_name }}</h2>
+        <div class="small muted">
+          {{ session.doctor.department.name }} &middot; Room {{ session.doctor.room_no or '—' }}
+          &middot; {{ session.start_time|time12 }} &ndash; {{ session.end_time|time12 }}
+        </div>
+      </div>
+      <div class="row">
+        <span class="badge {{ 'green' if session.status == 'in_progress' else 'grey' if session.status == 'closed' else 'blue' }}">
+          {{ session.status.replace('_',' ')|title }}</span>
+        {% if session.status != 'closed' %}
+          <form method="post" action="{{ url_for('admin.force_close', session_id=session.id) }}"
+                onsubmit="return confirm('Force close this clinic?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn sm ghost" type="submit">Force close</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="grid g4">
+        <div class="stat teal"><div class="n">{{ snapshot.now_serving or '—' }}</div><div class="l">Now serving</div></div>
+        <div class="stat amber"><div class="n">{{ snapshot.waiting }}</div><div class="l">Waiting</div></div>
+        <div class="stat green"><div class="n">{{ snapshot.served }}</div><div class="l">Completed</div></div>
+        <div class="stat"><div class="n">{{ snapshot.avg_minutes }}m</div><div class="l">Avg consult</div></div>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <div class="empty card"><div class="ico">—</div>No clinics are scheduled today.</div>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script>setInterval(function () { location.reload(); }, 15000);</script>
+{% endblock %}

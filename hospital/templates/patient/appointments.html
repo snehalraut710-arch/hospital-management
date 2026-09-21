@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}My appointments{% endblock %}
+{% block content %}
+<div class="between" style="margin-bottom:1rem">
+  <h1>My appointments</h1>
+  <a class="btn" href="{{ url_for('patient.book_start') }}">Book new</a>
+</div>
+
+<div class="card pad0" style="margin-bottom:1.25rem">
+  <div class="card-head"><h2>Upcoming</h2></div>
+  {% if upcoming %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>When</th><th>Doctor</th><th>Department</th><th>Token</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for appointment in upcoming %}
+        <tr>
+          <td><strong>{{ appointment.appt_date|prettydate }}</strong>
+              <div class="small muted">{{ appointment.slot_start|time12 }}</div></td>
+          <td>{{ appointment.doctor.display_name }}</td>
+          <td class="small muted">{{ appointment.doctor.department.name }}</td>
+          <td><span class="badge teal">#{{ appointment.token_number }}</span></td>
+          <td>{% include "partials/status.html" %}</td>
+          <td class="right nowrap">
+            {% if appointment.appt_date == today %}
+              <a class="btn sm" href="{{ url_for('patient.live_queue', appointment_id=appointment.id) }}">Live queue</a>
+            {% endif %}
+            <a class="btn sm ghost" href="{{ url_for('patient.appointment_detail', appointment_id=appointment.id) }}">Details</a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  {% else %}
+    <div class="empty">No upcoming appointments.</div>
+  {% endif %}
+</div>
+
+<div class="card pad0">
+  <div class="card-head"><h2>Past</h2></div>
+  {% if past %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Date</th><th>Doctor</th><th>Status</th><th>Diagnosis</th><th></th></tr></thead>
+      <tbody>
+      {% for appointment in past %}
+        <tr>
+          <td>{{ appointment.appt_date.strftime('%d %b %Y') }}</td>
+          <td>{{ appointment.doctor.display_name }}
+              <div class="small muted">{{ appointment.doctor.department.name }}</div></td>
+          <td>{% include "partials/status.html" %}</td>
+          <td class="small">{{ appointment.consultation.diagnosis if appointment.consultation else '—' }}</td>
+          <td class="right nowrap">
+            {% if appointment.consultation %}
+              <a class="btn sm ghost" href="{{ url_for('patient.prescription', appointment_id=appointment.id) }}">Prescription</a>
+            {% endif %}
+            <a class="btn sm ghost" href="{{ url_for('patient.appointment_detail', appointment_id=appointment.id) }}">Details</a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  {% else %}
+    <div class="empty">No past appointments.</div>
+  {% endif %}
+</div>
+{% endblock %}

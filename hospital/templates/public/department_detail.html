@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ department.name }}{% endblock %}
+{% block content %}
+<div class="crumb"><a href="{{ url_for('public.departments') }}">Departments</a> / {{ department.name }}</div>
+
+<div class="card" style="margin-bottom:1.25rem">
+  <div class="row">
+    <div class="icon" style="width:46px;height:46px;border-radius:10px;background:var(--teal-100);color:var(--teal-700);display:grid;place-items:center;font-size:1.3rem;font-weight:700">{{ department.icon }}</div>
+    <div>
+      <h1 style="margin:0">{{ department.name }}</h1>
+      <p class="muted" style="margin:0">{{ department.description }}</p>
+    </div>
+  </div>
+</div>
+
+<h2>Doctors in this department</h2>
+{% if doctors %}
+  <div class="grid g2" style="margin-top:.75rem">
+    {% for doctor in doctors %}
+      <div class="doc-card">
+        <div class="pic">{{ doctor.user.initials }}</div>
+        <div class="meta">
+          <h3>{{ doctor.display_name }}</h3>
+          <div class="muted small">{{ doctor.qualification or 'General practitioner' }}
+            &middot; {{ doctor.experience_years }} yrs experience</div>
+          <div class="row" style="margin-top:.4rem">
+            {% with value = doctor.avg_rating %}{% include "partials/stars.html" %}{% endwith %}
+            <span class="small muted">({{ doctor.rating_count }})</span>
+            <span class="badge grey">{{ doctor.consultation_fee|money }}</span>
+          </div>
+          <div class="row" style="margin-top:.7rem">
+            <a class="btn sm" href="{{ url_for('patient.book_slots', doctor_id=doctor.id) if current_user.is_authenticated and current_user.is_patient else url_for('auth.login') }}">Book appointment</a>
+            <a class="btn sm ghost" href="{{ url_for('public.doctor_detail', doctor_id=doctor.id) }}">Profile</a>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty card"><div class="ico">+</div>No doctors are currently listed in this department.</div>
+{% endif %}
+{% endblock %}

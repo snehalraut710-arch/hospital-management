@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block main_class %}{% endblock %}
+
+{% block hero %}
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <h1>The right doctor, without the guesswork.</h1>
+      <p>
+        Describe your symptoms in plain language. Our AI assistant suggests the right
+        department, shows you which doctors are free, and gives you a queue token so you
+        know exactly when you'll be seen - no waiting room limbo.
+      </p>
+      <div class="row" style="margin-top:1.25rem">
+        <a class="btn dark lg" href="{{ url_for('chatbot.chat') }}">Check your symptoms</a>
+        <a class="btn ghost lg" href="{{ url_for('public.doctors') }}">Browse doctors</a>
+      </div>
+      <div class="hero-stats">
+        <div><div class="n">{{ stats.doctors }}</div><div class="l">Doctors</div></div>
+        <div><div class="n">{{ stats.departments }}</div><div class="l">Departments</div></div>
+        <div><div class="n">{{ stats.appointments_today }}</div><div class="l">Appointments today</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Describe your symptoms</h3>
+      <p class="muted small">The AI assistant will suggest a department.</p>
+      <form action="{{ url_for('chatbot.chat') }}" method="get">
+        <div class="field">
+          <textarea name="q" rows="4" placeholder="e.g. I've had a throbbing headache for three days and light hurts my eyes"></textarea>
+        </div>
+        <button class="btn block" type="submit">Get a recommendation</button>
+      </form>
+      <p class="hint" style="margin-top:.6rem">
+        Guidance only, never a diagnosis. In an emergency, call your local emergency number.
+      </p>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block content %}
+<div class="wrap page">
+
+  <section style="margin-bottom:2.5rem">
+    <div class="between" style="margin-bottom:1rem">
+      <div>
+        <h2>How it works</h2>
+        <p class="muted small">Four steps from symptom to consultation.</p>
+      </div>
+    </div>
+    <div class="grid g4">
+      {% for step in [
+        ('1','Describe it','Tell the AI assistant what you are feeling, in your own words.'),
+        ('2','Get matched','It suggests the department and ranks doctors by availability and rating.'),
+        ('3','Pick a slot','Choose a time that suits you and receive a token number instantly.'),
+        ('4','Track the queue','Watch the live board and arrive when your token is close.')] %}
+      <div class="card">
+        <div class="dept-card-icon icon" style="width:32px;height:32px;border-radius:8px;background:var(--teal-100);color:var(--teal-700);display:grid;place-items:center;font-weight:700;margin-bottom:.6rem">{{ step[0] }}</div>
+        <h3>{{ step[1] }}</h3>
+        <p class="muted small" style="margin:0">{{ step[2] }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section style="margin-bottom:2.5rem">
+    <div class="between" style="margin-bottom:1rem">
+      <h2>Departments</h2>
+      <a href="{{ url_for('public.departments') }}">View all &rarr;</a>
+    </div>
+    <div class="grid g4">
+      {% for department in departments[:8] %}
+        <a class="dept-card" href="{{ url_for('public.department_detail', slug=department.slug) }}">
+          <div class="icon">{{ department.icon }}</div>
+          <h3>{{ department.name }}</h3>
+          <p>{{ department.active_doctors|length }} doctor{{ '' if department.active_doctors|length == 1 else 's' }}</p>
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section>
+    <div class="between" style="margin-bottom:1rem">
+      <h2>Top rated doctors</h2>
+      <a href="{{ url_for('public.doctors') }}">See all &rarr;</a>
+    </div>
+    <div class="grid g3">
+      {% for doctor in featured_doctors %}
+        <div class="doc-card">
+          <div class="pic">{{ doctor.user.initials }}</div>
+          <div class="meta">
+            <h3>{{ doctor.display_name }}</h3>
+            <div class="muted small">{{ doctor.department.name }}{% if doctor.qualification %} &middot; {{ doctor.qualification }}{% endif %}</div>
+            <div class="row" style="margin-top:.4rem">
+              {% with value = doctor.avg_rating %}{% include "partials/stars.html" %}{% endwith %}
+              <span class="small muted">{{ doctor.rating_count }} review{{ '' if doctor.rating_count == 1 else 's' }}</span>
+            </div>
+            <div class="row" style="margin-top:.6rem">
+              <a class="btn sm" href="{{ url_for('public.doctor_detail', doctor_id=doctor.id) }}">View profile</a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+</div>
+{% endblock %}

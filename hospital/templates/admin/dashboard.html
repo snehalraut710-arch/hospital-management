@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Admin dashboard{% endblock %}
+{% block content %}
+<div class="between" style="margin-bottom:1.25rem">
+  <div>
+    <h1 style="margin-bottom:.15rem">Hospital overview</h1>
+    <p class="muted small" style="margin:0">{{ today.strftime('%A, %d %B %Y') }}</p>
+  </div>
+  <div class="row">
+    <a class="btn ghost" href="{{ url_for('admin.reports_page') }}">Full reports</a>
+    <a class="btn" href="{{ url_for('admin.new_doctor') }}">Add doctor</a>
+  </div>
+</div>
+
+<div class="grid g4" style="margin-bottom:1.25rem">
+  <div class="stat teal"><div class="n">{{ stats.appointments_today }}</div><div class="l">Appointments today</div></div>
+  <div class="stat amber"><div class="n">{{ stats.waiting_now }}</div><div class="l">Waiting now</div></div>
+  <div class="stat green"><div class="n">{{ stats.completed_today }}</div><div class="l">Completed today</div></div>
+  <div class="stat"><div class="n">{{ stats.patients }}</div><div class="l">Registered patients</div></div>
+</div>
+
+<div class="split">
+  <div class="stack">
+    <div class="card">
+      <div class="between">
+        <h2>Appointments, last 14 days</h2>
+        <span class="small muted">{{ per_day|sum(attribute='count') }} total</span>
+      </div>
+      {% set peak = per_day|map(attribute='count')|max %}
+      <div class="bars">
+        {% for point in per_day %}
+          <div class="b" style="height:{{ (point.count / peak * 100) if peak else 0 }}%"
+               title="{{ point.label }}: {{ point.count }}">
+            {% if point.count %}<span>{{ point.count }}</span>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+      <div class="barlabels">
+        {% for point in per_day %}<div>{{ point.label.split(' ')[0] }}</div>{% endfor %}
+      </div>
+    </div>
+
+    <div class="card pad0">
+      <div class="card-head">
+        <h2>Live queues</h2>
+        <a class="small" href="{{ url_for('admin.queues') }}">Manage</a>
+      </div>
+      {% if live_sessions %}
+        <div class="table-wrap"><table>
+          <thead><tr><th>Doctor</th><th>Department</th><th>Time</th><th>Now serving</th><th>Waiting</th><th>Status</th></tr></thead>
+          <tbody>
+          {% for session in live_sessions %}
+            <tr>
+              <td>{{ session.doctor.display_name }}</td>
+              <td class="small muted">{{ session.doctor.department.name }}</td>
+              <td class="small">{{ session.start_time|time12 }}</td>
+              <td><strong>{{ session.current_token or '—' }}</strong></td>
+              <td>{{ session.waiting_count }}</td>
+              <td><span class="badge {{ 'green' if session.status == 'in_progress' else 'grey' if session.status == 'closed' else 'blue' }}">
+                {{ session.status.replace('_',' ')|title }}</span></td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table></div>
+      {% else %}
+        <div class="empty">No clinics scheduled today.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="stack">
+    <div class="card">
+      <h3>Service quality</h3>
+      <div class="between" style="padding:.35rem 0"><span class="muted small">No-show rate</span>
+        <strong>{{ no_show.rate }}%</strong></div>
+      <div class="between" style="padding:.35rem 0"><span class="muted small">Avg consultation</span>
+        <strong>{{ avg_wait }} min</strong></div>
+      <div class="between" style="padding:.35rem 0"><span class="muted small">Concluded visits</span>
+        <strong>{{ no_show.concluded }}</strong></div>
+    </div>
+
+    <div class="card">
+      <h3>By department</h3>
+      {% set top = per_department|map(attribute='count')|max %}
+      {% for row in per_department[:8] %}
+        <div class="hbar">
+          <div class="top"><span>{{ row.department }}</span><span class="muted">{{ row.count }}</span></div>
+          <div class="track"><div class="fill" style="width:{{ (row.count / top * 100) if top else 0 }}%"></div></div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="card">
+      <h3>Busiest doctors</h3>
+      {% for row in busiest %}
+        <div class="between" style="padding:.3rem 0;border-bottom:1px solid var(--line)">
+          <div>
+            <div class="small"><strong>{{ row.doctor }}</strong></div>
+            <div class="small muted">{{ row.department }}</div>
+          </div>
+          <span class="badge teal">{{ row.appointments }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

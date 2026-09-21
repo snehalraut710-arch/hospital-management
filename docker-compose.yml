@@ -1,0 +1,47 @@
+# MediQueue - run the whole system with one command:
+#
+#     docker compose up --build
+#
+# Then open http://localhost:5000
+#
+# Port 5000 is taken by AirPlay Receiver on many Macs. If the container cannot
+# bind, start it on another port instead:
+#
+#     PORT=8000 docker compose up --build
+
+services:
+  web:
+    build: .
+    image: mediqueue:latest
+    container_name: mediqueue
+    ports:
+      - "${PORT:-5000}:5000"
+    environment:
+      # Sessions are signed with this. Fine for a demo; set a real value
+      # anywhere else, e.g. in a .env file next to this one.
+      SECRET_KEY: "${SECRET_KEY:-dev-secret-change-in-production}"
+      DATABASE_URL: "sqlite:////app/data/hospital.db"
+      # Optional email delivery. Left unset, notifications stay in-app only
+      # and nothing can fail.
+      # MAIL_SERVER: "smtp.example.com"
+      # MAIL_PORT: "587"
+      # MAIL_USERNAME: "user"
+      # MAIL_PASSWORD: "pass"
+    volumes:
+      # The SQLite file lives here, so data survives `docker compose down`.
+      # Remove it with `docker compose down -v`.
+      - mediqueue-data:/app/data
+    restart: unless-stopped
+    # Declared here rather than only in the Dockerfile: podman builds
+    # OCI-format images by default and silently drops the Dockerfile's
+    # HEALTHCHECK instruction. A compose-level check works on both.
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request as u; u.urlopen('http://127.0.0.1:5000/').read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+
+volumes:
+  mediqueue-data:

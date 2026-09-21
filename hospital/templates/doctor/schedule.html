@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}My schedule{% endblock %}
+{% block content %}
+<h1>My schedule</h1>
+<p class="muted">Your weekly sittings. Contact an administrator to change them.</p>
+
+<div class="split" style="margin-top:1.25rem">
+  <div class="card pad0">
+    <div class="card-head"><h2>Weekly sittings</h2></div>
+    {% if schedules %}
+      <div class="table-wrap"><table>
+        <thead><tr><th>Day</th><th>Time</th><th>Slot length</th><th>Max tokens</th><th>Capacity</th></tr></thead>
+        <tbody>
+        {% for schedule in schedules %}
+          <tr>
+            <td><strong>{{ schedule.weekday_name }}</strong></td>
+            <td>{{ schedule.start_time|time12 }} &ndash; {{ schedule.end_time|time12 }}</td>
+            <td>{{ schedule.slot_minutes }} min</td>
+            <td>{{ schedule.max_tokens }}</td>
+            <td><span class="badge teal">{{ schedule.capacity }} slots</span></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+    {% else %}
+      <div class="empty">No sittings have been configured for you yet.</div>
+    {% endif %}
+  </div>
+
+  <div class="card pad0">
+    <div class="card-head"><h3>Upcoming leave</h3></div>
+    {% if exceptions %}
+      {% for exception in exceptions %}
+        <div style="padding:.7rem 1.15rem;border-bottom:1px solid var(--line)">
+          <strong class="small">{{ exception.date.strftime('%d %b %Y') }}</strong>
+          <div class="small muted">{{ exception.reason or 'Leave' }}</div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty small">No upcoming leave recorded.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

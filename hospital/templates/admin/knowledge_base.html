@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Triage knowledge base{% endblock %}
+{% block content %}
+<h1>Triage knowledge base</h1>
+<p class="muted">
+  The deterministic half of the AI. Red-flag rules override the machine learning model
+  entirely; the remaining rules contribute weighted keyword evidence alongside it.
+  Changes take effect immediately - no retraining required.
+</p>
+
+<div class="split" style="margin-top:1.25rem">
+  <div class="card pad0">
+    <div class="card-head"><h2>{{ rules|length }} rules</h2></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Phrase</th><th>Department</th><th>Weight</th><th>Type</th><th></th></tr></thead>
+      <tbody>
+      {% for rule in rules %}
+        <tr>
+          <td><strong>{{ rule.phrase }}</strong>
+              {% if rule.advice %}<div class="small muted">{{ rule.advice[:70] }}…</div>{% endif %}</td>
+          <td class="small">{{ rule.department.name }}</td>
+          <td>{{ rule.weight }}</td>
+          <td>{% if rule.is_red_flag %}<span class="badge red">Red flag</span>
+              {% else %}<span class="badge grey">Keyword</span>{% endif %}</td>
+          <td class="right">
+            <form method="post" action="{{ url_for('admin.delete_rule', rule_id=rule.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn sm ghost" type="submit">Remove</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3>Add a rule</h3>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label for="phrase">Phrase</label>
+        <input type="text" id="phrase" name="phrase" required placeholder="shortness of breath">
+        <div class="hint">Matched after synonym expansion, so lay wording still works.</div>
+      </div>
+      <div class="field">
+        <label for="department_id">Route to department</label>
+        <select id="department_id" name="department_id" required>
+          <option value="">Choose...</option>
+          {% for department in departments %}
+            <option value="{{ department.id }}">{{ department.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="weight">Weight</label>
+        <input type="number" id="weight" name="weight" value="1.5" step="0.1" min="0.1" max="5">
+      </div>
+      <div class="field">
+        <label class="check"><input type="checkbox" name="is_red_flag"> Red flag (overrides the model)</label>
+      </div>
+      <div class="field">
+        <label for="advice">Emergency advice (red flags only)</label>
+        <textarea id="advice" name="advice" rows="3"></textarea>
+      </div>
+      <button class="btn block" type="submit">Add rule</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

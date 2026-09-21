@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Patients{% endblock %}
+{% block content %}
+<h1>Patients</h1>
+
+<form class="card" method="get" style="margin:1rem 0">
+  <div class="row">
+    <input type="search" name="q" value="{{ search }}" placeholder="Search by name or email" style="flex:1">
+    <button class="btn" type="submit">Search</button>
+    {% if search %}<a class="btn ghost" href="{{ url_for('admin.patients') }}">Clear</a>{% endif %}
+  </div>
+</form>
+
+<div class="card pad0">
+  <div class="table-wrap"><table>
+    <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Registered</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for patient in pagination.items %}
+      <tr>
+        <td><strong>{{ patient.name }}</strong></td>
+        <td class="small">{{ patient.email }}</td>
+        <td class="small">{{ patient.phone or '—' }}</td>
+        <td class="small muted">{{ patient.created_at.strftime('%d %b %Y') }}</td>
+        <td><span class="badge {{ 'green' if patient.is_active_flag else 'grey' }}">
+            {{ 'Active' if patient.is_active_flag else 'Deactivated' }}</span></td>
+        <td class="right"><a class="btn sm ghost" href="{{ url_for('admin.patient_detail', user_id=patient.id) }}">View</a></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="empty">No patients found.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% include "partials/pagination.html" %}
+{% endblock %}

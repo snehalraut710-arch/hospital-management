@@ -1,0 +1,15 @@
+# Development overlay: live code reloading, no rebuild between edits.
+#
+#     docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# The project directory is mounted over /app, so edits on the host take effect
+# immediately. The database still lives in the named volume.
+
+services:
+  web:
+    environment:
+      FLASK_DEBUG: "1"
+    volumes:
+      - .:/app
+      - mediqueue-data:/app/data
+    command: ["flask", "--app", "wsgi", "run", "--host", "0.0.0.0", "--port", "5000", "--debug"]

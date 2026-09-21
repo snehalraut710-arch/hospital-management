@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Queue console{% endblock %}
+{% block content %}
+
+<div class="between" style="margin-bottom:1.25rem">
+  <div>
+    <h1 style="margin-bottom:.15rem">Queue console</h1>
+    <p class="muted small" style="margin:0">{{ day.strftime('%A, %d %B %Y') }}</p>
+  </div>
+  <form method="get" class="row">
+    <input type="date" name="date" value="{{ day.isoformat() }}">
+    <button class="btn ghost" type="submit">Go</button>
+  </form>
+</div>
+
+{% if not sessions %}
+  <div class="empty card">
+    <div class="ico">—</div>
+    <p>You have no clinic scheduled on this date.</p>
+    <a class="btn ghost" href="{{ url_for('doctor.schedule') }}">View your schedule</a>
+  </div>
+{% endif %}
+
+{% for session in sessions %}
+  {% set snapshot = snapshots[session.id] %}
+  <div class="card pad0" style="margin-bottom:1.25rem">
+    <div class="card-head">
+      <div>
+        <h2 style="margin:0">{{ session.start_time|time12 }} &ndash; {{ session.end_time|time12 }}</h2>
+        <div class="small muted">
+          {{ snapshot.waiting }} waiting &middot; {{ snapshot.served }} seen &middot;
+          averaging {{ snapshot.avg_minutes }} min per patient
+        </div>
+      </div>
+      <div class="row">
+        <span class="badge {{ 'green' if session.status == 'in_progress' else 'grey' if session.status == 'closed' else 'blue' }}">
+          {{ session.status.replace('_',' ')|title }}
+        </span>
+        {% if session.status == 'not_started' %}
+          <form method="post" action="{{ url_for('doctor.open_session', session_id=session.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn sm" type="submit">Open clinic</button>
+          </form>
+        {% endif %}
+        {% if session.status != 'closed' %}
+          <form method="post" action="{{ url_for('doctor.call_next', session_id=session.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn sm" type="submit" {{ 'disabled' if snapshot.waiting == 0 or session.now_serving }}>
+              Call next
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('doctor.close_session', session_id=session.id) }}"
+                onsubmit="return confirm('Close this clinic? Anyone still waiting will be marked as a no-show.')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn sm ghost" type="submit">Close clinic</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="grid g4">
+        <div class="stat teal"><div class="n">{{ snapshot.now_serving or '—' }}</div><div class="l">Now serving</div></div>
+        <div class="stat amber"><div class="n">{{ snapshot.waiting }}</div><div class="l">Waiting</div></div>
+        <div class="stat green"><div class="n">{{ snapshot.served }}</div><div class="l">Completed</div></div>
+        <div class="stat"><div class="n">{{ snapshot.avg_minutes }}m</div><div class="l">Avg consult</div></div>
+      </div>
+    </div>
+
+    <div>
+      {% for appointment in session.appointments %}
+        {% if appointment.status != 'cancelled' %}
+          <div class="queue-row {{ 'now' if appointment.status == 'in_consult' }} {{ 'done' if appointment.status in ['completed','no_show'] }}">
+            <div class="tok">{{ appointment.token_number }}</div>
+            <div style="flex:1;min-width:0">
+              <strong>{{ appointment.patient.name }}</strong>
+              <div class="small muted">
+                {{ appointment.slot_start|time12 }}
+                {% if appointment.symptoms_text %}
+                  &middot; {{ appointment.symptoms_text[:70] }}{{ '…' if appointment.symptoms_text|length > 70 }}
+                {% endif %}
+              </div>
+            </div>
+            {% if appointment.triage_specialty %}
+              <span class="badge grey nowrap" title="AI triage suggestion">
+                AI: {{ appointment.triage_specialty }}
+              </span>
+            {% endif %}
+            {% include "partials/status.html" %}
+            <div class="row nowrap">
+              {% if appointment.status == 'in_consult' %}
+                <a class="btn sm" href="{{ url_for('doctor.consult', appointment_id=appointment.id) }}">Open consultation</a>
+              {% elif appointment.status in ['booked','checked_in'] %}
+                {% if appointment.status == 'booked' %}
+                  <form method="post" action="{{ url_for('doctor.check_in', appointment_id=appointment.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn sm ghost" type="submit">Check in</button>
+                  </form>
+                {% endif %}
+                <form method="post" action="{{ url_for('doctor.no_show', appointment_id=appointment.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn sm ghost" type="submit">No show</button>
+                </form>
+              {% elif appointment.consultation %}
+                <a class="btn sm ghost" href="{{ url_for('doctor.consult', appointment_id=appointment.id) }}">View notes</a>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+      {% else %}
+        <div class="empty">Nobody has booked into this clinic yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // The console reloads itself so a doctor leaving it open sees new bookings.
+  // Only when nothing is being typed, so it cannot interrupt work in progress.
+  setInterval(function () {
+    if (!document.querySelector('input:focus, textarea:focus')) location.reload();
+  }, 30000);
+</script>
+{% endblock %}

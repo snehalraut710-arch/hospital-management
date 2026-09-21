@@ -1,0 +1,193 @@
+"""Seed data for departments and the curated symptom knowledge base.
+
+The knowledge base is the deterministic half of the triage engine. Two jobs:
+
+1. **Red flags** (`is_red_flag=True`) override the statistical model entirely.
+   A Naive Bayes classifier trained on a couple of hundred rows must not be the
+   final authority on "chest pain radiating to the left arm".
+2. **Weighted keywords** back up the model on phrasings the training data never
+   contained, contributing 30% of the blended score.
+"""
+
+DEPARTMENTS = [
+    ("General Medicine", "GM",
+     "First point of contact for fevers, fatigue, diabetes, thyroid and anything that does not obviously fit elsewhere."),
+    ("Cardiology", "HT",
+     "Heart and circulation: chest pain, palpitations, blood pressure and heart failure."),
+    ("Dermatology", "SK",
+     "Skin, hair and nails: rashes, acne, hair loss, pigmentation and allergies."),
+    ("Orthopaedics", "BN",
+     "Bones, joints, spine and sports injuries, including fractures and arthritis."),
+    ("Neurology", "NR",
+     "Brain and nerves: headaches, migraine, seizures, stroke, tremor and numbness."),
+    ("Gastroenterology", "GI",
+     "Digestive system: acidity, abdominal pain, liver disease and bowel problems."),
+    ("ENT", "ET",
+     "Ear, nose and throat: hearing, sinus, tonsils, vertigo and voice problems."),
+    ("Ophthalmology", "EY",
+     "Eyes and vision: refraction, cataract, glaucoma, infections and injuries."),
+    ("Pulmonology", "LU",
+     "Lungs and breathing: asthma, chronic cough, COPD and chest infections."),
+    ("Paediatrics", "CH",
+     "Children from newborn to adolescence: growth, vaccination and childhood illness."),
+    ("Psychiatry", "MH",
+     "Mental health: depression, anxiety, sleep, addiction and stress-related illness."),
+    ("Gynaecology", "GY",
+     "Women's health: menstruation, pregnancy, fertility and menopause."),
+    ("Urology", "UR",
+     "Kidneys and urinary tract: stones, infections, prostate and urinary symptoms."),
+]
+
+# (department, phrase, weight, is_red_flag, advice)
+SYMPTOM_KB = [
+    # ---------------- RED FLAGS -------------------------------------
+    ("Cardiology", "chest pain radiating", 3.0, True,
+     "Chest pain spreading to the arm, jaw or back can indicate a heart attack. Seek emergency care immediately."),
+    ("Cardiology", "chest pain left arm", 3.0, True,
+     "Chest pain spreading to the left arm can indicate a heart attack. Seek emergency care immediately."),
+    ("Cardiology", "crushing chest pain", 3.0, True,
+     "Crushing chest pain is a medical emergency. Call emergency services now."),
+    ("Cardiology", "chest pain cold sweat", 3.0, True,
+     "Chest pain with sweating is a medical emergency. Call emergency services now."),
+    ("Neurology", "slurred speech", 3.0, True,
+     "Sudden slurred speech may indicate a stroke. This is a time-critical emergency -- go to A&E now."),
+    ("Neurology", "face drooping", 3.0, True,
+     "Facial drooping may indicate a stroke. This is a time-critical emergency -- go to A&E now."),
+    ("Neurology", "weakness one side", 3.0, True,
+     "Sudden one-sided weakness may indicate a stroke. Go to A&E immediately."),
+    ("Neurology", "worst headache of my life", 3.0, True,
+     "A sudden, severe headache needs emergency assessment."),
+    ("Neurology", "seizure", 2.5, True,
+     "Seizures need urgent medical assessment."),
+    ("Pulmonology", "coughing up blood", 3.0, True,
+     "Coughing up blood needs urgent assessment."),
+    ("Pulmonology", "cannot breathe", 3.0, True,
+     "Severe breathing difficulty is an emergency. Seek immediate care."),
+    ("Gastroenterology", "vomiting blood", 3.0, True,
+     "Vomiting blood is a medical emergency. Go to A&E now."),
+    ("Psychiatry", "harming myself", 3.0, True,
+     "Please reach out for immediate support. Contact a crisis helpline or go to your nearest emergency department now. You do not have to manage this alone."),
+    ("Psychiatry", "suicidal", 3.0, True,
+     "Please reach out for immediate support. Contact a crisis helpline or go to your nearest emergency department now. You do not have to manage this alone."),
+    ("Psychiatry", "end my life", 3.0, True,
+     "Please reach out for immediate support. Contact a crisis helpline or go to your nearest emergency department now. You do not have to manage this alone."),
+    ("Paediatrics", "infant not breathing", 3.0, True,
+     "This is an emergency. Call emergency services immediately."),
+    ("Ophthalmology", "sudden vision loss", 3.0, True,
+     "Sudden loss of vision needs same-day emergency eye assessment."),
+
+    # ---------------- WEIGHTED KEYWORDS -----------------------------
+    ("Cardiology", "palpitations", 2.0, False, None),
+    ("Cardiology", "heart", 1.5, False, None),
+    ("Cardiology", "blood pressure", 1.8, False, None),
+    ("Cardiology", "chest tightness", 2.0, False, None),
+    ("Cardiology", "ankle swelling", 1.5, False, None),
+    ("Cardiology", "cholesterol", 1.5, False, None),
+
+    ("Dermatology", "rash", 2.0, False, None),
+    ("Dermatology", "skin", 1.8, False, None),
+    ("Dermatology", "acne", 2.0, False, None),
+    ("Dermatology", "itching", 1.6, False, None),
+    ("Dermatology", "hair loss", 2.0, False, None),
+    ("Dermatology", "eczema", 2.0, False, None),
+    ("Dermatology", "pigmentation", 1.8, False, None),
+    ("Dermatology", "mole", 1.8, False, None),
+
+    ("Orthopaedics", "joint pain", 2.0, False, None),
+    ("Orthopaedics", "back pain", 2.0, False, None),
+    ("Orthopaedics", "knee", 2.0, False, None),
+    ("Orthopaedics", "fracture", 2.2, False, None),
+    ("Orthopaedics", "shoulder", 1.6, False, None),
+    ("Orthopaedics", "sprain", 1.8, False, None),
+    ("Orthopaedics", "arthritis", 2.0, False, None),
+    ("Orthopaedics", "spine", 1.8, False, None),
+
+    ("Neurology", "migraine", 2.2, False, None),
+    ("Neurology", "headache", 1.6, False, None),
+    ("Neurology", "numbness", 1.8, False, None),
+    ("Neurology", "tremor", 2.0, False, None),
+    ("Neurology", "memory loss", 2.0, False, None),
+    ("Neurology", "tingling", 1.6, False, None),
+    ("Neurology", "photophobia", 2.2, False, None),
+    ("Neurology", "aura", 2.0, False, None),
+    ("Neurology", "throbbing headache", 2.2, False, None),
+
+    ("Gastroenterology", "abdomen pain", 2.0, False, None),
+    ("Gastroenterology", "acidity", 2.0, False, None),
+    ("Gastroenterology", "diarrhoea", 2.0, False, None),
+    ("Gastroenterology", "constipation", 2.0, False, None),
+    ("Gastroenterology", "vomiting", 1.5, False, None),
+    ("Gastroenterology", "jaundice", 2.2, False, None),
+    ("Gastroenterology", "liver", 1.8, False, None),
+    ("Gastroenterology", "piles", 2.0, False, None),
+
+    ("ENT", "sore throat", 2.0, False, None),
+    ("ENT", "ear pain", 2.2, False, None),
+    ("ENT", "hearing", 2.0, False, None),
+    ("ENT", "sinus", 2.0, False, None),
+    ("ENT", "tonsils", 2.2, False, None),
+    ("ENT", "vertigo", 2.0, False, None),
+    ("ENT", "nasal congestion", 1.8, False, None),
+    ("ENT", "hoarse voice", 2.0, False, None),
+
+    ("Ophthalmology", "vision", 2.0, False, None),
+    ("Ophthalmology", "eye", 1.8, False, None),
+    ("Ophthalmology", "blurred", 1.8, False, None),
+    ("Ophthalmology", "spectacles", 2.0, False, None),
+    ("Ophthalmology", "cataract", 2.2, False, None),
+
+    ("Pulmonology", "cough", 1.8, False, None),
+    ("Pulmonology", "asthma", 2.2, False, None),
+    ("Pulmonology", "wheezing", 2.2, False, None),
+    ("Pulmonology", "breathless", 1.8, False, None),
+    ("Pulmonology", "phlegm", 1.8, False, None),
+
+    ("Paediatrics", "child", 2.2, False, None),
+    ("Paediatrics", "infant", 2.2, False, None),
+    ("Paediatrics", "vaccination", 2.0, False, None),
+    ("Paediatrics", "newborn", 2.2, False, None),
+
+    ("Psychiatry", "depressed", 2.2, False, None),
+    ("Psychiatry", "anxiety", 2.2, False, None),
+    ("Psychiatry", "panic", 2.0, False, None),
+    ("Psychiatry", "insomnia", 1.8, False, None),
+    ("Psychiatry", "addiction", 2.0, False, None),
+    ("Psychiatry", "low mood", 2.0, False, None),
+
+    ("Gynaecology", "menstruation", 2.2, False, None),
+    ("Gynaecology", "pregnancy", 2.2, False, None),
+    ("Gynaecology", "pcos", 2.2, False, None),
+    ("Gynaecology", "menopause", 2.2, False, None),
+    ("Gynaecology", "fertility", 2.0, False, None),
+
+    ("Urology", "urination", 2.0, False, None),
+    ("Urology", "urine", 1.8, False, None),
+    ("Urology", "kidney stone", 2.4, False, None),
+    ("Urology", "prostate", 2.2, False, None),
+    ("Urology", "urinary tract infection", 2.2, False, None),
+
+    ("General Medicine", "fever", 1.6, False, None),
+    ("General Medicine", "fatigue", 1.5, False, None),
+    ("General Medicine", "weakness", 1.4, False, None),
+    ("General Medicine", "diabetes", 1.8, False, None),
+    ("General Medicine", "thyroid", 1.8, False, None),
+    ("General Medicine", "checkup", 1.6, False, None),
+]
+
+# Distinguishing questions asked when the model is unsure between departments.
+# Keyed by department: "if I suspect this department, what would confirm it?"
+CLARIFYING_QUESTIONS = {
+    "Cardiology": "Does the discomfort get worse when you exert yourself, and ease when you rest?",
+    "Pulmonology": "Is there a cough or wheeze along with the breathlessness?",
+    "Gastroenterology": "Is the discomfort linked to eating -- worse on an empty stomach or after meals?",
+    "Neurology": "Is there any numbness, weakness, or change in your vision or speech?",
+    "Orthopaedics": "Did this start after an injury, or does movement make it worse?",
+    "Dermatology": "Is there anything visible on the skin, such as a rash, patch or swelling?",
+    "ENT": "Is your ear, nose or throat involved -- pain, blockage or hearing change?",
+    "Ophthalmology": "Has your vision itself changed, or is it mainly discomfort in the eye?",
+    "Paediatrics": "Is the patient under 16 years old?",
+    "Psychiatry": "Has your mood, sleep or stress level changed over the past few weeks?",
+    "Gynaecology": "Is this related to your menstrual cycle or pregnancy?",
+    "Urology": "Is there any change when you pass urine -- burning, frequency or colour?",
+    "General Medicine": "Have you had a fever or felt generally unwell overall?",
+}

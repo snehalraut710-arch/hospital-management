@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="narrow">
+  <div class="card">
+    <h1>Create a patient account</h1>
+    <p class="muted small">Doctors and administrators are registered by the hospital.</p>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label for="name">Full name</label>
+        <input type="text" id="name" name="name" value="{{ form.get('name','') }}" required autofocus>
+      </div>
+      <div class="grid g2">
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" value="{{ form.get('email','') }}" required>
+        </div>
+        <div class="field">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" name="phone" value="{{ form.get('phone','') }}">
+        </div>
+      </div>
+      <div class="grid g3">
+        <div class="field">
+          <label for="date_of_birth">Date of birth</label>
+          <input type="date" id="date_of_birth" name="date_of_birth" value="{{ form.get('date_of_birth','') }}">
+        </div>
+        <div class="field">
+          <label for="gender">Gender</label>
+          <select id="gender" name="gender">
+            <option value="">Prefer not to say</option>
+            {% for option in ['Female','Male','Other'] %}
+              <option {{ 'selected' if form.get('gender') == option }}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="blood_group">Blood group</label>
+          <select id="blood_group" name="blood_group">
+            <option value="">Unknown</option>
+            {% for group in ['A+','A-','B+','B-','O+','O-','AB+','AB-'] %}
+              <option {{ 'selected' if form.get('blood_group') == group }}>{{ group }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="grid g2">
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required>
+          <div class="hint">At least 6 characters.</div>
+        </div>
+        <div class="field">
+          <label for="confirm">Confirm password</label>
+          <input type="password" id="confirm" name="confirm" required>
+        </div>
+      </div>
+      <button class="btn block" type="submit">Create account</button>
+    </form>
+    <p class="small muted" style="margin-top:1rem;margin-bottom:0">
+      Already registered? <a href="{{ url_for('auth.login') }}">Sign in</a>.
+    </p>
+  </div>
+</div>
+{% endblock %}

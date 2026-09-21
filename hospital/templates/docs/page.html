@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ page.title }} - Docs{% endblock %}
+{% block main_class %}{% endblock %}
+
+{% block content %}
+<div class="docs-shell">
+
+  <aside class="docs-side">
+    <div class="docs-side-inner">
+      <div class="docs-brand">
+        <span class="badge teal">Documentation</span>
+        <h3 style="margin:.5rem 0 .1rem">MediQueue</h3>
+        <div class="small muted">AI Powered Hospital Appointment &amp; Queue Management</div>
+      </div>
+
+      <nav class="docs-nav">
+        {% for slug, title in pages %}
+          <a href="{{ url_for('docs.page', slug=slug) }}"
+             class="{{ 'active' if slug == page.slug }}">
+            {%- if slug != 'index' %}<span class="num">{{ loop.index0 }}</span>{% endif -%}
+            {{ title }}
+          </a>
+        {% endfor %}
+      </nav>
+
+      {% if page.toc %}
+        <div class="docs-toc">
+          <div class="docs-toc-label">On this page</div>
+          {{ page.toc|safe }}
+        </div>
+      {% endif %}
+
+      <div class="docs-side-foot">
+        <a href="{{ url_for('public.home') }}">&larr; Back to the app</a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="docs-main">
+    <article class="prose">
+      {{ page.html|safe }}
+    </article>
+
+    <nav class="docs-pager">
+      {% if previous %}
+        <a class="pager-card" href="{{ url_for('docs.page', slug=previous[0]) }}">
+          <span class="small muted">&larr; Previous</span>
+          <strong>{{ previous[1] }}</strong>
+        </a>
+      {% else %}<span></span>{% endif %}
+
+      {% if following %}
+        <a class="pager-card right" href="{{ url_for('docs.page', slug=following[0]) }}">
+          <span class="small muted">Next &rarr;</span>
+          <strong>{{ following[1] }}</strong>
+        </a>
+      {% endif %}
+    </nav>
+  </main>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{# Diagrams are pre-rendered to SVG by tools/render_diagrams.py, so these
+   pages ship no JavaScript at all and work with no network. #}
+{% endblock %}

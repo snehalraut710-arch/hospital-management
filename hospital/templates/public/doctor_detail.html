@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ doctor.display_name }}{% endblock %}
+{% block content %}
+<div class="crumb"><a href="{{ url_for('public.doctors') }}">Doctors</a> / {{ doctor.display_name }}</div>
+
+<div class="split">
+  <div class="stack">
+    <div class="card">
+      <div class="row" style="align-items:flex-start">
+        <div class="pic" style="width:64px;height:64px;border-radius:50%;background:var(--teal-600);color:#fff;display:grid;place-items:center;font-size:1.3rem;font-weight:700">{{ doctor.user.initials }}</div>
+        <div style="flex:1">
+          <h1 style="margin-bottom:.2rem">{{ doctor.display_name }}</h1>
+          <div class="muted">{{ doctor.department.name }} &middot; {{ doctor.qualification or 'General practitioner' }}</div>
+          <div class="row" style="margin-top:.5rem">
+            {% with value = doctor.avg_rating %}{% include "partials/stars.html" %}{% endwith %}
+            <span class="small muted">{{ '%.1f'|format(doctor.avg_rating or 0) }} from {{ doctor.rating_count }} review{{ '' if doctor.rating_count == 1 else 's' }}</span>
+          </div>
+        </div>
+      </div>
+      {% if doctor.bio %}<p style="margin-top:1rem">{{ doctor.bio }}</p>{% endif %}
+      <div class="grid g3" style="margin-top:1rem">
+        <div class="stat"><div class="n">{{ doctor.experience_years }}</div><div class="l">Years experience</div></div>
+        <div class="stat teal"><div class="n">{{ doctor.consultation_fee|money }}</div><div class="l">Consultation</div></div>
+        <div class="stat"><div class="n">{{ doctor.room_no or '—' }}</div><div class="l">Room</div></div>
+      </div>
+    </div>
+
+    <div class="card pad0">
+      <div class="card-head"><h2>Patient reviews</h2></div>
+      {% if reviews %}
+        {% for review in reviews %}
+          <div style="padding:.9rem 1.15rem;border-bottom:1px solid var(--line)">
+            <div class="between">
+              {% with value = review.stars %}{% include "partials/stars.html" %}{% endwith %}
+              <span class="small muted">{{ review.created_at.strftime('%d %b %Y') }}</span>
+            </div>
+            {% if review.comment %}<p style="margin:.4rem 0 0">{{ review.comment }}</p>{% endif %}
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty">No reviews yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Availability</h3>
+    {% if upcoming %}
+      <p class="muted small">Next {{ upcoming|length }} day(s) with free slots.</p>
+      <div class="stack" style="gap:.4rem">
+        {% for day, count in upcoming[:6] %}
+          <div class="between" style="padding:.4rem 0;border-bottom:1px solid var(--line)">
+            <span>{{ day|prettydate }}</span>
+            <span class="badge teal">{{ count }} slots</span>
+          </div>
+        {% endfor %}
+      </div>
+      <a class="btn block" style="margin-top:1rem"
+         href="{{ url_for('patient.book_slots', doctor_id=doctor.id) if current_user.is_authenticated and current_user.is_patient else url_for('auth.login') }}">
+        Book an appointment
+      </a>
+    {% else %}
+      <p class="muted">No free slots in the next two weeks.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

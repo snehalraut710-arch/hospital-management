@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Book an appointment{% endblock %}
+{% block content %}
+<h1>Book an appointment</h1>
+<p class="muted">Start with your symptoms, or pick a department directly.</p>
+
+<div class="card" style="margin:1.25rem 0">
+  <h3>Describe your symptoms</h3>
+  <form method="get">
+    <div class="field">
+      <textarea name="symptoms" rows="3" placeholder="e.g. sharp pain in my lower back that spreads down my left leg">{{ symptoms }}</textarea>
+    </div>
+    <button class="btn" type="submit">Find the right department</button>
+  </form>
+</div>
+
+{% if suggestion %}
+  {% set result = suggestion.result %}
+  <div class="card" style="margin-bottom:1.25rem;border-color:var(--teal-300)">
+    {% if result.is_red_flag %}
+      <div class="emergency" style="margin-bottom:1rem">
+        <strong>This may need urgent attention</strong>
+        {{ result.red_flag_advice }}
+      </div>
+    {% endif %}
+
+    <div class="between">
+      <div>
+        <div class="small muted">Recommended department</div>
+        <h2 style="margin:.1rem 0">{{ result.department }}</h2>
+      </div>
+      <div style="min-width:180px">
+        <div class="between small"><span class="muted">Confidence</span><strong>{{ result.percent }}%</strong></div>
+        <div class="conf {{ 'vlow' if result.percent < 35 else 'low' if result.percent < 60 }}">
+          <i style="width:{{ [result.percent, 3]|max }}%"></i>
+        </div>
+      </div>
+    </div>
+
+    {% if result.matched_terms %}
+      <div style="margin-top:.6rem">
+        <span class="small muted">Based on:</span>
+        {% for term in result.matched_terms %}<span class="term">{{ term }}</span>{% endfor %}
+      </div>
+    {% endif %}
+
+    {% if result.clarifying_question %}
+      <div class="disclaimer" style="margin-top:.8rem">
+        {{ result.clarifying_question }} - add that to your description above for a
+        better match, or continue with {{ result.department }}.
+      </div>
+    {% endif %}
+
+    {% if suggestion.doctors %}
+      <hr>
+      <h3>Suggested doctors</h3>
+      <div class="grid g3">
+        {% for doctor in suggestion.doctors %}
+          <div class="card" style="box-shadow:none">
+            <strong>{{ doctor.display_name }}</strong>
+            <div class="small muted">{{ doctor.qualification or doctor.department.name }}</div>
+            <div class="row" style="margin-top:.3rem">
+              {% with value = doctor.avg_rating %}{% include "partials/stars.html" %}{% endwith %}
+              <span class="small muted">({{ doctor.rating_count }})</span>
+            </div>
+            <a class="btn sm block" style="margin-top:.6rem"
+               href="{{ url_for('patient.book_slots', doctor_id=doctor.id, symptoms=symptoms) }}">Choose a time</a>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+{% endif %}
+
+<h2>Or choose a department</h2>
+<div class="grid g4" style="margin-top:.75rem">
+  {% for department in departments %}
+    <a class="dept-card" href="{{ url_for('patient.book_department', department_id=department.id, symptoms=symptoms) }}">
+      <div class="icon">{{ department.icon }}</div>
+      <h3>{{ department.name }}</h3>
+      <p>{{ department.active_doctors|length }} doctor{{ '' if department.active_doctors|length == 1 else 's' }}</p>
+    </a>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}My profile{% endblock %}
+{% block content %}
+<div class="narrow">
+  <h1>My profile</h1>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <fieldset>
+      <legend>Account</legend>
+      <div class="grid g2">
+        <div class="field">
+          <label for="name">Full name</label>
+          <input type="text" id="name" name="name" value="{{ current_user.name }}" required>
+        </div>
+        <div class="field">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" name="phone" value="{{ current_user.phone or '' }}">
+        </div>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" value="{{ current_user.email }}" disabled>
+        <div class="hint">Contact the hospital to change your registered email.</div>
+      </div>
+      <div class="field">
+        <label for="password">New password</label>
+        <input type="password" id="password" name="password" placeholder="Leave blank to keep current">
+      </div>
+    </fieldset>
+
+    {% if profile %}
+    <fieldset>
+      <legend>Medical details</legend>
+      <p class="hint" style="margin-top:-.4rem">
+        Your doctor sees this when your token is called. Accurate allergy and condition
+        information helps them treat you safely.
+      </p>
+      <div class="grid g3">
+        <div class="field">
+          <label for="date_of_birth">Date of birth</label>
+          <input type="date" id="date_of_birth" name="date_of_birth"
+                 value="{{ profile.date_of_birth.isoformat() if profile.date_of_birth else '' }}">
+        </div>
+        <div class="field">
+          <label for="gender">Gender</label>
+          <select id="gender" name="gender">
+            <option value="">Prefer not to say</option>
+            {% for option in ['Female','Male','Other'] %}
+              <option {{ 'selected' if profile.gender == option }}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="blood_group">Blood group</label>
+          <select id="blood_group" name="blood_group">
+            <option value="">Unknown</option>
+            {% for group in ['A+','A-','B+','B-','O+','O-','AB+','AB-'] %}
+              <option {{ 'selected' if profile.blood_group == group }}>{{ group }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="allergies">Allergies</label>
+        <textarea id="allergies" name="allergies" rows="2">{{ profile.allergies or '' }}</textarea>
+      </div>
+      <div class="field">
+        <label for="chronic_conditions">Ongoing conditions</label>
+        <textarea id="chronic_conditions" name="chronic_conditions" rows="2">{{ profile.chronic_conditions or '' }}</textarea>
+      </div>
+      <div class="grid g2">
+        <div class="field">
+          <label for="address">Address</label>
+          <textarea id="address" name="address" rows="2">{{ profile.address or '' }}</textarea>
+        </div>
+        <div class="field">
+          <label for="emergency_contact">Emergency contact</label>
+          <input type="text" id="emergency_contact" name="emergency_contact" value="{{ profile.emergency_contact or '' }}">
+        </div>
+      </div>
+    </fieldset>
+    {% endif %}
+
+    <button class="btn" type="submit">Save changes</button>
+  </form>
+</div>
+{% endblock %}

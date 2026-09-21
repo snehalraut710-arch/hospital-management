@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<h1>Notifications</h1>
+<div class="card pad0" style="margin-top:1rem">
+  {% for item in notifications %}
+    <div style="padding:.9rem 1.15rem;border-bottom:1px solid var(--line);
+                {{ 'background:var(--teal-50)' if not item.is_read }}">
+      <div class="between">
+        <strong>{{ item.title }}</strong>
+        <span class="small muted">{{ item.created_at.strftime('%d %b, %I:%M %p') }}</span>
+      </div>
+      {% if item.body %}<div class="small muted" style="margin-top:.25rem;white-space:pre-line">{{ item.body }}</div>{% endif %}
+    </div>
+  {% else %}
+    <div class="empty">No notifications yet.</div>
+  {% endfor %}
+</div>
+{% endblock %}

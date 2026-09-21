@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Departments{% endblock %}
+{% block content %}
+<h1>Departments</h1>
+<p class="muted">Thirteen specialties. Not sure which you need?
+  <a href="{{ url_for('chatbot.chat') }}">Ask the AI assistant</a>.</p>
+
+<div class="grid g3" style="margin-top:1.25rem">
+  {% for department in departments %}
+    <a class="dept-card" href="{{ url_for('public.department_detail', slug=department.slug) }}">
+      <div class="icon">{{ department.icon }}</div>
+      <h3>{{ department.name }}</h3>
+      <p>{{ department.description }}</p>
+      <div class="row" style="margin-top:.7rem">
+        <span class="badge teal">{{ department.active_doctors|length }} doctors</span>
+      </div>
+    </a>
+  {% endfor %}
+</div>
+{% endblock %}

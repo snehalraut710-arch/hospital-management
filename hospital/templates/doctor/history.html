@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Consultations{% endblock %}
+{% block content %}
+<h1>Past consultations</h1>
+<div class="card pad0" style="margin-top:1rem">
+  <div class="table-wrap"><table>
+    <thead><tr><th>Date</th><th>Patient</th><th>Token</th><th>Diagnosis</th><th></th></tr></thead>
+    <tbody>
+    {% for appointment in pagination.items %}
+      <tr>
+        <td>{{ appointment.appt_date.strftime('%d %b %Y') }}
+            <div class="small muted">{{ appointment.slot_start|time12 }}</div></td>
+        <td>{{ appointment.patient.name }}</td>
+        <td><span class="badge grey">#{{ appointment.token_number }}</span></td>
+        <td class="small">{{ appointment.consultation.diagnosis if appointment.consultation else '—' }}</td>
+        <td class="right"><a class="btn sm ghost" href="{{ url_for('doctor.consult', appointment_id=appointment.id) }}">View</a></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="empty">No completed consultations yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% include "partials/pagination.html" %}
+{% endblock %}

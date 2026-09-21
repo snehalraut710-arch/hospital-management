@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Find a doctor{% endblock %}
+{% block content %}
+<h1>Find a doctor</h1>
+
+<form class="card" method="get" style="margin:1rem 0">
+  <div class="grid g4" style="align-items:end">
+    <div class="field" style="margin:0">
+      <label for="q">Search by name</label>
+      <input type="search" id="q" name="q" value="{{ search }}" placeholder="Dr. Sharma">
+    </div>
+    <div class="field" style="margin:0">
+      <label for="department">Department</label>
+      <select id="department" name="department">
+        <option value="">All departments</option>
+        {% for department in departments %}
+          <option value="{{ department.id }}" {{ 'selected' if selected_department == department.id }}>{{ department.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field" style="margin:0">
+      <label for="sort">Sort by</label>
+      <select id="sort" name="sort">
+        <option value="rating" {{ 'selected' if sort == 'rating' }}>Highest rated</option>
+        <option value="experience" {{ 'selected' if sort == 'experience' }}>Most experienced</option>
+        <option value="fee" {{ 'selected' if sort == 'fee' }}>Lowest fee</option>
+      </select>
+    </div>
+    <button class="btn" type="submit">Apply</button>
+  </div>
+</form>
+
+<p class="muted small">{{ doctors|length }} doctor{{ '' if doctors|length == 1 else 's' }} found.</p>
+
+<div class="grid g2">
+  {% for doctor in doctors %}
+    <div class="doc-card">
+      <div class="pic">{{ doctor.user.initials }}</div>
+      <div class="meta">
+        <h3>{{ doctor.display_name }}</h3>
+        <div class="muted small">{{ doctor.department.name }} &middot; {{ doctor.qualification or '—' }}</div>
+        <div class="row" style="margin-top:.4rem">
+          {% with value = doctor.avg_rating %}{% include "partials/stars.html" %}{% endwith %}
+          <span class="small muted">({{ doctor.rating_count }})</span>
+          <span class="badge grey">{{ doctor.experience_years }} yrs</span>
+          <span class="badge grey">{{ doctor.consultation_fee|money }}</span>
+        </div>
+        <div class="row" style="margin-top:.7rem">
+          <a class="btn sm" href="{{ url_for('patient.book_slots', doctor_id=doctor.id) if current_user.is_authenticated and current_user.is_patient else url_for('auth.login') }}">Book</a>
+          <a class="btn sm ghost" href="{{ url_for('public.doctor_detail', doctor_id=doctor.id) }}">Profile</a>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="empty card" style="grid-column:1/-1"><div class="ico">?</div>No doctors match those filters.</div>
+  {% endfor %}
+</div>
+{% endblock %}
